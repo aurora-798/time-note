@@ -6,17 +6,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
 @SpringBootTest
-class TestAiServiceTest {
+class CityDataServiceTest {
 
     @Resource
-    private TestAiService testAiService;
+    private CityDataService cityDataService;
 
     @Test
-    void testGenerate() {
-        String hello = testAiService.test("hello");
-        System.out.println(hello);
+    void getNoNoteInfo() {
+        cityDataService.getNoNoteInfo(119.12082223241518,36.771487991364275);
     }
-
 }
