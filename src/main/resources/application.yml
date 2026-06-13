@@ -6,8 +6,12 @@ spring:
 server:
   port: 8081
 
+# tim-note-jwt-secret-key-for-spring-boot-application-2024 有效期一天
+jwt:
+  secret: dGltZS1ub3RlLWp3dC1zZWNyZXQta2V5LWZvci1zcHJpbmctYm9vdC1hcHBsaWNhdGlvbi0yMDI0
+  expiration: 86400000
 
-# springdoc-openapi????
+# springdoc-openapi项目相关配置
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -19,7 +23,7 @@ springdoc:
     - group: 'default'
       paths-to-match: '/**'
       packages-to-scan: com.note.controller
-# knife4j???????????????
+# knife4j的增强配置，不需要增强可以不配
 knife4j:
   enable: true
   setting:
