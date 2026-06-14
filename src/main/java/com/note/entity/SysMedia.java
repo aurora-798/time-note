@@ -21,7 +21,7 @@ public class SysMedia {
     @Schema(description = "关联日记ID")
     private Long diaryId;
 
-    @Schema(description = "文件类型：1-图片，2-音频，3-视频")
+    @Schema(description = "文件类型：1-图片，2-视频，3-其他")
     private Integer mediaType;
 
     @Schema(description = "文件名")
