@@ -7,6 +7,7 @@ import com.note.common.Result;
 import com.note.entity.SysMedia;
 import com.note.service.SysMediaService;
 import com.note.utils.QiniuUtils;
+import com.note.utils.UserUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,13 +33,13 @@ public class FileController {
     private static final Map<Integer, String> TYPE_FOLDER = Map.of(
             1, "image",
             2, "video",
-            3, "other");
+            3,"avatar");
 
     @Operation(summary = "上传文件")
     @PostMapping("/upload")
     public Result<SysMedia> upload(
             @Parameter(description = "文件") @RequestParam("file") MultipartFile file,
-            @Parameter(description = "文件类型：1-图片，2-视频，3-其他") @RequestParam Integer mediaType,
+            @Parameter(description = "文件类型：1-图片，2-视频，3-头像") @RequestParam Integer mediaType,
             @Parameter(description = "关联日记ID") @RequestParam(required = false) Long diaryId,
             @Parameter(description = "备注") @RequestParam(required = false) String remark) {
 
@@ -47,7 +48,7 @@ public class FileController {
         }
         String folder = TYPE_FOLDER.get(mediaType);
         if (folder == null) {
-            return Result.fail("不支持的文件类型，mediaType 仅支持 1-图片、2-视频、3-其他");
+            return Result.fail("不支持的文件类型，mediaType 仅支持 1-图片、2-视频、3-头像");
         }
 
         String originalName = file.getOriginalFilename();
@@ -65,7 +66,7 @@ public class FileController {
         }
 
         SysMedia media = new SysMedia();
-        media.setUserId(currentUserId());
+        media.setUserId(UserUtils.currentUserId());
         media.setDiaryId(diaryId);
         media.setMediaType(mediaType);
         media.setFileName(originalName);
@@ -91,13 +92,5 @@ public class FileController {
         }
         sysMediaService.removeById(id);
         return Result.ok();
-    }
-
-    private Long currentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getDetails() instanceof Long userId) {
-            return userId;
-        }
-        return null;
     }
 }

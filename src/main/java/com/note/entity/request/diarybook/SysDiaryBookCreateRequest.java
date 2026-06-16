@@ -1,0 +1,18 @@
+package com.note.entity.request.diarybook;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+
+@Data
+@Schema(description = "创建日记本请求")
+public class SysDiaryBookCreateRequest {
+    private String name;
+
+    private String cover;
+
+    private String font;
+
+    private Integer encrypted;
+
+    private String password;
+}

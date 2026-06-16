@@ -1,4 +1,4 @@
-package com.note.entity.vo;
+package com.note.entity.vo.weather;
 
 import lombok.Data;
 

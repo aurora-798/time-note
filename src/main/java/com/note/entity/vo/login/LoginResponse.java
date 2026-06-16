@@ -1,4 +1,4 @@
-package com.note.entity.dto;
+package com.note.entity.vo.login;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;

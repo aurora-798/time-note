@@ -1,12 +1,10 @@
 package com.note.utils;
 
-import com.note.entity.vo.HeFengGeoResp;
-import com.note.entity.vo.HeFengWeatherNowResp;
+import com.note.entity.vo.weather.HeFengGeoResp;
+import com.note.entity.vo.weather.HeFengWeatherNowResp;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class WeatherUtilsTest {

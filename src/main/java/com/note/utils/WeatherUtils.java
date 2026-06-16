@@ -1,20 +1,16 @@
 package com.note.utils;
 
 
-import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.CharUtil;
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.ZipUtil;
 import cn.hutool.json.JSONUtil;
-import com.note.entity.vo.HeFengGeoResp;
-import com.note.entity.vo.HeFengWeatherNowResp;
+import com.note.entity.vo.weather.HeFengGeoResp;
+import com.note.entity.vo.weather.HeFengWeatherNowResp;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import java.io.ByteArrayInputStream;
-import java.util.Collections;
 
 @Component
 public class WeatherUtils {

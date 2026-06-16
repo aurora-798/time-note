@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Schema(description = "日记内容")
 public class SysDiary {
 
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
     @Schema(description = "日记ID")
     private Long id;
 
@@ -25,23 +25,12 @@ public class SysDiary {
     @Schema(description = "标题")
     private String title;
 
-    @Schema(description = "AI生成的日记内容")
+    @Schema(description = "日记内容")
     private String content;
 
-    @Schema(description = "原始素材内容")
-    private String sourceContent;
-
-    @Schema(description = "日记风格")
-    private String style;
 
     @Schema(description = "字数")
     private Integer wordCount;
-
-    @Schema(description = "是否已编辑：0-否，1-是")
-    private Integer isEdit;
-
-    @Schema(description = "状态：0-草稿，1-已发布")
-    private Integer status;
 
     @TableField(fill = FieldFill.INSERT)
     @Schema(description = "创建时间")
