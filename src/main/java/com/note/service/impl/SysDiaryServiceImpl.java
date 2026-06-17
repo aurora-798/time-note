@@ -18,6 +18,8 @@ import com.note.utils.UserUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 import static com.note.constant.SystemParamSettingConstant.Diary_Title_Max_Count;
 
 @Service
@@ -54,17 +56,26 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         SysDiary sysDiary = new SysDiary();
         BeanUtil.copyProperties(request, sysDiary);
         sysDiary.setUserId(userId);
+        sysDiary.setDiaryDate(LocalDate.now());
         return save(sysDiary);
     }
 
     @Override
     @Transactional
     public boolean updateDiary(SysDiaryEditRequest request) {
+        Long userId = UserUtils.currentUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.NOT_LOGIN);
+        }
         if (request.getId() == null) {
             throw new BusinessException(ResultCode.Empty);
         }
         if (StrUtil.isNotBlank(request.getTitle()) && request.getTitle().length() > Diary_Title_Max_Count) {
             throw new BusinessException(ResultCode.MORE_THAN_MAX_LENGTH);
+        }
+        SysDiary existing = getById(request.getId());
+        if (existing == null || !existing.getUserId().equals(userId)) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
         }
         SysDiary sysDiary = new SysDiary();
         BeanUtil.copyProperties(request, sysDiary);
@@ -74,8 +85,16 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
     @Override
     @Transactional
     public boolean deleteDiary(SysDiaryDeleteRequest request) {
+        Long userId = UserUtils.currentUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.NOT_LOGIN);
+        }
         if (request.getId() == null) {
             throw new BusinessException(ResultCode.Empty);
+        }
+        SysDiary existing = getById(request.getId());
+        if (existing == null || !existing.getUserId().equals(userId)) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
         }
         return removeById(request.getId());
     }

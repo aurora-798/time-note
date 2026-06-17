@@ -3,7 +3,6 @@ package com.note.utils;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.BCrypt;
 import com.note.constant.ResultCode;
-import com.note.constant.SecretConstant;
 import com.note.exception.BusinessException;
 
 /**
@@ -12,8 +11,11 @@ import com.note.exception.BusinessException;
 public class BcryptUtils {
 
 
-    public static  String enBcrypt() {
-        return BCrypt.hashpw(SecretConstant.SECRET_KEY, BCrypt.gensalt());
+    public static String enBcrypt(String password) {
+        if (StrUtil.isBlank(password)) {
+            throw new BusinessException(ResultCode.Empty);
+        }
+        return BCrypt.hashpw(password, BCrypt.gensalt());
     }
 
     public static boolean checkBcrypt(String password, String hash) {

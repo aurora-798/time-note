@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class SysDiaryBookEditRequest {
 
-    private String bookId;
+    private Long bookId;
 
     private String name;
 }

@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,7 +45,7 @@ public class SysDiaryBookController {
 
     @Operation(summary = "创建日记本")
     @PostMapping("/create")
-    public Result<SysDiaryBookCreateVo> createDiaryBook(SysDiaryBookCreateRequest sysDiaryBookRequest) {
+    public Result<SysDiaryBookCreateVo> createDiaryBook(@RequestBody SysDiaryBookCreateRequest sysDiaryBookRequest) {
         boolean save = sysDiaryBookService.saveDiaryBook(sysDiaryBookRequest);
         if (!save) {
             return Result.fail("创建失败");
@@ -54,14 +55,14 @@ public class SysDiaryBookController {
 
     @Operation(summary = "验证日记本密码")
     @PostMapping("/verify")
-    public Result<SysDiaryBookVerifyRequest> verifyDiaryBook(SysDiaryBookVerifyRequest sysDiaryBookVerify) {
+    public Result<?> verifyDiaryBook(@RequestBody SysDiaryBookVerifyRequest sysDiaryBookVerify) {
         sysDiaryBookService.DiaryBookVerify(sysDiaryBookVerify);
         return Result.ok();
     }
 
     @Operation(summary = "编辑笔记本")
     @PostMapping("/edit")
-    public Result<SysDiaryBookEditVo> editDiaryBook(SysDiaryBookEditRequest sysDiaryBookEditRequest) {
+    public Result<SysDiaryBookEditVo> editDiaryBook(@RequestBody SysDiaryBookEditRequest sysDiaryBookEditRequest) {
         boolean result = sysDiaryBookService.updateDiaryBook(sysDiaryBookEditRequest);
         if (!result) {
             return Result.fail("更新失败");
@@ -72,7 +73,7 @@ public class SysDiaryBookController {
 
     @Operation(summary = "删除日记本")
     @PostMapping("/delete")
-    public Result<SysDiaryBookDelVo> deleteDiaryBook(SysDiaryBookDelRequest sysDiaryBookDelRequest) {
+    public Result<SysDiaryBookDelVo> deleteDiaryBook(@RequestBody SysDiaryBookDelRequest sysDiaryBookDelRequest) {
         boolean result = sysDiaryBookService.deleteDiaryBook(sysDiaryBookDelRequest);
         if (!result) {
             return Result.fail("删除失败");

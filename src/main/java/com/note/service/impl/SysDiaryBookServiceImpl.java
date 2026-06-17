@@ -3,7 +3,7 @@ package com.note.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.note.constant.ResultCode;
 import com.note.entity.SysDiary;
@@ -65,20 +65,26 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
     @Override
     @Transactional
     public boolean saveDiaryBook(SysDiaryBookCreateRequest sysDiaryBookRequest) {
+        Long userId = UserUtils.currentUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.NOT_LOGIN);
+        }
         Integer encrypted = sysDiaryBookRequest.getEncrypted();
         SysDiaryBook sysDiaryBook = new SysDiaryBook();
         BeanUtil.copyProperties(sysDiaryBookRequest, sysDiaryBook);
-        if(encrypted == 1) {
+        sysDiaryBook.setUserId(userId);
+        if (encrypted == 1) {
             sysDiaryBook.setEncrypted(1);
-            // 加密：明文 → 哈希入库
-            String hash = BcryptUtils.enBcrypt();
+        }
+        int res = sysDiaryBookMapper.insert(sysDiaryBook);
+        if (encrypted == 1 && res > 0) {
+            String hash = BcryptUtils.enBcrypt(sysDiaryBookRequest.getPassword());
             SysDiaryBookSecret bookSecret = SysDiaryBookSecret.builder()
                     .bookId(sysDiaryBook.getId())
                     .secretHash(hash)
                     .build();
             sysDiaryBookSecretMapper.insert(bookSecret);
         }
-        int res = sysDiaryBookMapper.insert(sysDiaryBook);
         return res > 0;
     }
 
@@ -116,16 +122,20 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
     @Override
     @Transactional
     public boolean updateDiaryBook(SysDiaryBookEditRequest sysDiaryBookEditRequest) {
-        String bookId = sysDiaryBookEditRequest.getBookId();
+        Long userId = UserUtils.currentUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.NOT_LOGIN);
+        }
+        Long bookId = sysDiaryBookEditRequest.getBookId();
         String name = sysDiaryBookEditRequest.getName();
-        if(StrUtil.isBlank(bookId) || StrUtil.isBlank(name)) {
+        if (bookId == null || StrUtil.isBlank(name)) {
             throw new BusinessException(ResultCode.Empty);
         }
-        if(name.length() > DiaryBook_Max_Count) {
+        if (name.length() > DiaryBook_Max_Count) {
             throw new BusinessException(ResultCode.MORE_THAN_MAX_LENGTH);
         }
         SysDiaryBook sysDiaryBook = sysDiaryBookMapper.selectById(bookId);
-        if(sysDiaryBook == null) {
+        if (sysDiaryBook == null || !sysDiaryBook.getUserId().equals(userId)) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         sysDiaryBook.setName(name);
@@ -141,9 +151,17 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
     @Override
     @Transactional
     public boolean deleteDiaryBook(SysDiaryBookDelRequest sysDiaryBookDelRequest) {
-        String bookId = sysDiaryBookDelRequest.getBookId();
-        if(StrUtil.isBlank(bookId)) {
+        Long userId = UserUtils.currentUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.NOT_LOGIN);
+        }
+        Long bookId = sysDiaryBookDelRequest.getBookId();
+        if (bookId == null) {
             throw new BusinessException(ResultCode.Empty);
+        }
+        SysDiaryBook existing = sysDiaryBookMapper.selectById(bookId);
+        if (existing == null || !existing.getUserId().equals(userId)) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
         }
         // 先删除所有关联日记（条件 bookId = 日记本id，自动走逻辑删除）
         LambdaQueryWrapper<SysDiary> sysDiaryLambdaQueryWrapper = new LambdaQueryWrapper<>();

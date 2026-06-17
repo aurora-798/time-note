@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,7 +27,7 @@ public class SysDiaryController {
 
     @Operation(summary = "分页查询日记")
     @PostMapping("/page")
-    public Result<SysDiaryPageVo> getDiaryPage(SysDiaryPageRequest request) {
+    public Result<SysDiaryPageVo> getDiaryPage(@RequestBody SysDiaryPageRequest request) {
         Page<SysDiary> page = sysDiaryService.pageByUserId(request);
         SysDiaryPageVo vo = SysDiaryPageVo.builder()
                 .records(page.getRecords())
@@ -40,7 +41,7 @@ public class SysDiaryController {
 
     @Operation(summary = "新增日记")
     @PostMapping("/create")
-    public Result<?> createDiary(SysDiaryCreateRequest request) {
+    public Result<?> createDiary(@RequestBody SysDiaryCreateRequest request) {
         boolean result = sysDiaryService.saveDiary(request);
         if (!result) {
             return Result.fail("创建失败");
@@ -50,7 +51,7 @@ public class SysDiaryController {
 
     @Operation(summary = "编辑日记")
     @PostMapping("/edit")
-    public Result<?> editDiary(SysDiaryEditRequest request) {
+    public Result<?> editDiary(@RequestBody SysDiaryEditRequest request) {
         boolean result = sysDiaryService.updateDiary(request);
         if (!result) {
             return Result.fail("更新失败");
@@ -60,7 +61,7 @@ public class SysDiaryController {
 
     @Operation(summary = "删除日记")
     @PostMapping("/delete")
-    public Result<?> deleteDiary(SysDiaryDeleteRequest request) {
+    public Result<?> deleteDiary(@RequestBody SysDiaryDeleteRequest request) {
         boolean result = sysDiaryService.deleteDiary(request);
         if (!result) {
             return Result.fail("删除失败");
