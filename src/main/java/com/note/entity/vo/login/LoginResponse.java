@@ -21,6 +21,9 @@ public class LoginResponse {
     @Schema(description = "昵称")
     private String nickname;
 
+    @Schema(description = "头像")
+    private String avatar;
+
     @Schema(description = "角色")
     private String role;
 }

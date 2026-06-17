@@ -57,7 +57,7 @@ public class AuthController {
 
             LoginResponse resp = new LoginResponse(
                     token, sysUser.getId(), sysUser.getUsername(),
-                    sysUser.getNickname(), sysUser.getRole());
+                    sysUser.getNickname(), sysUser.getAvatar(),sysUser.getRole());
             return Result.ok(resp);
 
         } catch (BadCredentialsException e) {
