@@ -13,10 +13,13 @@ import java.time.LocalDateTime;
 public class SysDiary {
 
     @TableId(type = IdType.ASSIGN_ID)
-    @Schema(description = "日记ID")
+    @Schema(description = "日记 ID")
     private Long id;
 
-    @Schema(description = "用户ID")
+    @Schema(description = "日记本 ID")
+    private Long bookId;
+
+    @Schema(description = "用户 ID")
     private Long userId;
 
     @Schema(description = "日记日期")
@@ -31,6 +34,18 @@ public class SysDiary {
 
     @Schema(description = "字数")
     private Integer wordCount;
+
+    @Schema(description = "城市名")
+    private String name;
+
+    @Schema(description = "区级")
+    private String adm2;
+
+    @Schema(description = "天气")
+    private String text;
+
+    @Schema(description = "温度")
+    private String temp;
 
     @TableField(fill = FieldFill.INSERT)
     @Schema(description = "创建时间")

@@ -3,8 +3,10 @@ package com.note.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.note.constant.ResultCode;
+import com.note.entity.SysDiary;
 import com.note.entity.SysDiaryBook;
 import com.note.entity.SysDiaryBookSecret;
 import com.note.entity.request.diarybook.SysDiaryBookCreateRequest;
@@ -14,6 +16,7 @@ import com.note.entity.request.diarybook.SysDiaryBookVerifyRequest;
 import com.note.exception.BusinessException;
 import com.note.mapper.SysDiaryBookMapper;
 import com.note.mapper.SysDiaryBookSecretMapper;
+import com.note.mapper.SysDiaryMapper;
 import com.note.service.SysDiaryBookService;
 import com.note.utils.BcryptUtils;
 import com.note.utils.UserUtils;
@@ -30,6 +33,9 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
 
     @Resource
     private SysDiaryBookMapper sysDiaryBookMapper;
+
+    @Resource
+    private SysDiaryMapper sysDiaryMapper;
 
     @Resource
     private SysDiaryBookSecretMapper sysDiaryBookSecretMapper;
@@ -139,7 +145,10 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
         if(StrUtil.isBlank(bookId)) {
             throw new BusinessException(ResultCode.Empty);
         }
-        // TODO 删除日记本内的日记
+        // 先删除所有关联日记（条件 bookId = 日记本id，自动走逻辑删除）
+        LambdaQueryWrapper<SysDiary> sysDiaryLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        sysDiaryLambdaQueryWrapper.eq(SysDiary::getBookId, bookId);
+        sysDiaryMapper.delete(sysDiaryLambdaQueryWrapper);
         // 删除日记本
         int result = sysDiaryBookMapper.deleteById(bookId);
         return result > 0;
