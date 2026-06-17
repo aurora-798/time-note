@@ -12,6 +12,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
+
 @Component
 public class WeatherUtils {
 
@@ -31,11 +33,11 @@ public class WeatherUtils {
         // 1. 拼接第三方接口地址：不再拼接 &key=xxx，key放请求头传给和风
         String url = "https://nq52qdgqrv.re.qweatherapi.com/geo/v2/city/lookup?location=" + lng + "," + lat + "&key=" + hefengKey;
         ResponseEntity<byte[]> bytesData = restTemplate.getForEntity(url, byte[].class);
-        byte[] gzipJson = bytesData.getBody();
-        if (gzipJson == null) {
+        byte[] bodyBytes = bytesData.getBody();
+        if (bodyBytes == null) {
             throw new RuntimeException("和风接口返回空数据");
         }
-        String jsonStr = ZipUtil.unGzip(gzipJson, CharsetUtil.UTF_8);
+        String jsonStr = decodeResponseBody(bodyBytes);
         // 2. 解析返回实体
         HeFengGeoResp resp = JSONUtil.toBean(jsonStr, HeFengGeoResp.class);
         // 和风code=200代表成功
@@ -59,8 +61,7 @@ public class WeatherUtils {
         if (bodyBytes == null || bodyBytes.length == 0) {
             throw new RuntimeException("和风实时天气接口返回空数据");
         }
-        // 4. Gzip解压（兼容未压缩明文返回场景）
-        String json = ZipUtil.unGzip(bodyBytes, CharsetUtil.UTF_8);
+        String json = decodeResponseBody(bodyBytes);
 
         // 5. Hutool JSON解析为实体
         HeFengWeatherNowResp resp = JSONUtil.toBean(json, HeFengWeatherNowResp.class);
@@ -70,5 +71,13 @@ public class WeatherUtils {
             throw new RuntimeException("查询实时天气失败，接口返回code=" + resp.getCode());
         }
         return resp;
+    }
+
+    /** 兼容 gzip 与明文 JSON：RestTemplate 有时会自动解压，重复解压会产生乱码 */
+    private String decodeResponseBody(byte[] bodyBytes) {
+        if (bodyBytes.length >= 2 && (bodyBytes[0] == (byte) 0x1f) && (bodyBytes[1] == (byte) 0x8b)) {
+            return ZipUtil.unGzip(bodyBytes, CharsetUtil.UTF_8);
+        }
+        return new String(bodyBytes, StandardCharsets.UTF_8);
     }
 }

@@ -153,7 +153,7 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
             throw new BusinessException(ResultCode.Empty);
         }
         SysDiaryWeatherVo sysDiaryWeatherVo = new SysDiaryWeatherVo();
-        CityData weatherNow = weatherService.getWeatherNow(lat, lng);
+        CityData weatherNow = weatherService.getWeatherNow(lng, lat);
         BeanUtil.copyProperties(weatherNow, sysDiaryWeatherVo);
         return sysDiaryWeatherVo;
     }

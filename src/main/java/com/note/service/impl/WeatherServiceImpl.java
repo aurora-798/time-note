@@ -42,6 +42,7 @@ public class WeatherServiceImpl implements WeatherService {
                 .nowTime(localDateTimeFormat)
                 .week(localDateTime.getDayOfWeek().getValue())
                 .city(location.getAdm2())
+                .name(location.getName())
                 .weather(weatherNow.getNow().getText())
                 .temperature(weatherNow.getNow().getTemp())
                 .windForce(weatherNow.getNow().getWindScale()).build();

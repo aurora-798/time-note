@@ -1,10 +1,12 @@
 package com.note.ai.model;
 
 import lombok.Builder;
+import lombok.Data;
 
 /**
  * 城市数据节点
  */
+@Data
 @Builder
 public class CityData {
 
@@ -14,6 +16,9 @@ public class CityData {
     private Integer week;
     // 所在城市
     private String city;
+    // 区级
+    private String name;
+
     // 天气情况
     private String weather;
     // 温度
