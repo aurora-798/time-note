@@ -7,18 +7,12 @@ import com.note.entity.request.diarybook.SysDiaryBookCreateRequest;
 import com.note.entity.request.diarybook.SysDiaryBookDelRequest;
 import com.note.entity.request.diarybook.SysDiaryBookEditRequest;
 import com.note.entity.request.diarybook.SysDiaryBookVerifyRequest;
-import com.note.entity.vo.diarybook.SysDiaryBookCreateVo;
-import com.note.entity.vo.diarybook.SysDiaryBookDelVo;
-import com.note.entity.vo.diarybook.SysDiaryBookEditVo;
-import com.note.entity.vo.diarybook.SysDiaryBookListVo;
+import com.note.entity.vo.diarybook.*;
 import com.note.service.SysDiaryBookService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -42,6 +36,15 @@ public class SysDiaryBookController {
 
         return Result.ok(sysDiaryBookVo);
     }
+
+    @Operation(summary = "根据 bookId 获取用户日记本信息")
+    @PostMapping("/{bookId}")
+    public Result<SysDiaryBookFindVo> getDiaryBookById(@PathVariable Long bookId) {
+        SysDiaryBookFindVo sysDiaryBook = sysDiaryBookService.listByBookId(bookId);
+        return Result.ok(sysDiaryBook);
+    }
+
+
 
     @Operation(summary = "创建日记本")
     @PostMapping("/create")

@@ -6,6 +6,7 @@ import com.note.entity.request.diarybook.SysDiaryBookCreateRequest;
 import com.note.entity.request.diarybook.SysDiaryBookDelRequest;
 import com.note.entity.request.diarybook.SysDiaryBookEditRequest;
 import com.note.entity.request.diarybook.SysDiaryBookVerifyRequest;
+import com.note.entity.vo.diarybook.SysDiaryBookFindVo;
 
 import java.util.List;
 
@@ -45,4 +46,11 @@ public interface SysDiaryBookService extends IService<SysDiaryBook> {
      * @return 是否删除成功
      */
     boolean deleteDiaryBook(SysDiaryBookDelRequest sysDiaryBookDelRequest);
+
+    /**
+     * 根据日记本 ID 查询日记本信息
+     * @param bookId 日记本 ID
+     * @return 日记本信息
+     */
+    SysDiaryBookFindVo listByBookId(Long bookId);
 }

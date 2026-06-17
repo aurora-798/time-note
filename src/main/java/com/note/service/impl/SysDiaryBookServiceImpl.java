@@ -13,6 +13,7 @@ import com.note.entity.request.diarybook.SysDiaryBookCreateRequest;
 import com.note.entity.request.diarybook.SysDiaryBookDelRequest;
 import com.note.entity.request.diarybook.SysDiaryBookEditRequest;
 import com.note.entity.request.diarybook.SysDiaryBookVerifyRequest;
+import com.note.entity.vo.diarybook.SysDiaryBookFindVo;
 import com.note.exception.BusinessException;
 import com.note.mapper.SysDiaryBookMapper;
 import com.note.mapper.SysDiaryBookSecretMapper;
@@ -170,5 +171,32 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
         // 删除日记本
         int result = sysDiaryBookMapper.deleteById(bookId);
         return result > 0;
+    }
+
+    /**
+     * 根据日记本 ID 查询日记本信息
+     * @param bookId 日记本 ID
+     * @return 日记本信息
+     */
+    @Override
+    public SysDiaryBookFindVo listByBookId(Long bookId) {
+        if(bookId == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR);
+        }
+        Long userId = UserUtils.currentUserId();
+        if(userId == null) {
+            throw new BusinessException(ResultCode.NOT_LOGIN);
+        }
+        SysDiaryBook sysDiaryBook = sysDiaryBookMapper.selectById(bookId);
+        if (sysDiaryBook == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        Long sysDiaryBookUserId = sysDiaryBook.getUserId();
+        if(!sysDiaryBookUserId.equals(userId)) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        SysDiaryBookFindVo sysDiaryBookFindVo = new SysDiaryBookFindVo();
+        BeanUtil.copyProperties(sysDiaryBook, sysDiaryBookFindVo);
+        return sysDiaryBookFindVo;
     }
 }

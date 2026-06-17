@@ -12,4 +12,7 @@ public class SysDiaryPageRequest {
 
     @Schema(description = "每页条数", example = "10")
     private Integer pageSize;
+
+    @Schema(description = "日记本ID（可选，不传则查全部）")
+    private Long bookId;
 }

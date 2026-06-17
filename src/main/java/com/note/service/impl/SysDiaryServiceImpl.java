@@ -37,6 +37,9 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         Page<SysDiary> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<SysDiary> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysDiary::getUserId, userId);
+        if (request.getBookId() != null) {
+            wrapper.eq(SysDiary::getBookId, request.getBookId());
+        }
         wrapper.orderByDesc(SysDiary::getDiaryDate);
         return page(page, wrapper);
     }
