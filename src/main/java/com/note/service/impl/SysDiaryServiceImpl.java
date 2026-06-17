@@ -11,6 +11,7 @@ import com.note.entity.request.diary.SysDiaryCreateRequest;
 import com.note.entity.request.diary.SysDiaryDeleteRequest;
 import com.note.entity.request.diary.SysDiaryEditRequest;
 import com.note.entity.request.diary.SysDiaryPageRequest;
+import com.note.entity.vo.diary.SysDiaryFindVo;
 import com.note.exception.BusinessException;
 import com.note.mapper.SysDiaryMapper;
 import com.note.service.SysDiaryService;
@@ -97,5 +98,34 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         return removeById(request.getId());
+    }
+
+
+    /**
+     * 查询日记
+     * @param bookId 日记本 ID
+     * @param diaryId 日记 ID
+     * @return 日记信息
+     */
+    @Override
+    public SysDiaryFindVo findDiary(Long bookId, Long diaryId) {
+        if(bookId == null || diaryId == null) {
+            throw new BusinessException(ResultCode.Empty);
+        }
+        Long userId = UserUtils.currentUserId();
+        if(userId == null) {
+            throw new BusinessException(ResultCode.NOT_LOGIN);
+        }
+        LambdaQueryWrapper<SysDiary> sysDiaryLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        sysDiaryLambdaQueryWrapper.eq(SysDiary::getId, diaryId)
+                .eq(SysDiary::getUserId, userId);
+        SysDiary sysDiary = baseMapper.selectOne(sysDiaryLambdaQueryWrapper);
+        Long diaryUserId = sysDiary.getUserId();
+        if(!diaryUserId.equals(userId)) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        SysDiaryFindVo sysDiaryFindVo = new SysDiaryFindVo();
+        BeanUtil.copyProperties(sysDiary, sysDiaryFindVo);
+        return sysDiaryFindVo;
     }
 }

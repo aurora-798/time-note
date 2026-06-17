@@ -1,5 +1,6 @@
 package com.note.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.note.common.Result;
 import com.note.entity.SysDiary;
@@ -7,15 +8,13 @@ import com.note.entity.request.diary.SysDiaryCreateRequest;
 import com.note.entity.request.diary.SysDiaryDeleteRequest;
 import com.note.entity.request.diary.SysDiaryEditRequest;
 import com.note.entity.request.diary.SysDiaryPageRequest;
+import com.note.entity.vo.diary.SysDiaryFindVo;
 import com.note.entity.vo.diary.SysDiaryPageVo;
 import com.note.service.SysDiaryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "日记管理")
 @RestController
@@ -48,6 +47,15 @@ public class SysDiaryController {
         }
         return Result.ok();
     }
+
+    @Operation(summary = "查询日记")
+    @PostMapping("/{bookId}/{diaryId}")
+    public Result<SysDiaryFindVo> findDiary(@PathVariable Long bookId, @PathVariable Long diaryId) {
+        SysDiaryFindVo sysDiaryFindVo = sysDiaryService.findDiary(bookId,diaryId);
+        return Result.ok(sysDiaryFindVo);
+    }
+
+
 
     @Operation(summary = "编辑日记")
     @PostMapping("/edit")

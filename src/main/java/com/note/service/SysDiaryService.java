@@ -7,6 +7,7 @@ import com.note.entity.request.diary.SysDiaryCreateRequest;
 import com.note.entity.request.diary.SysDiaryDeleteRequest;
 import com.note.entity.request.diary.SysDiaryEditRequest;
 import com.note.entity.request.diary.SysDiaryPageRequest;
+import com.note.entity.vo.diary.SysDiaryFindVo;
 
 public interface SysDiaryService extends IService<SysDiary> {
 
@@ -37,4 +38,12 @@ public interface SysDiaryService extends IService<SysDiary> {
      * @return 是否删除成功
      */
     boolean deleteDiary(SysDiaryDeleteRequest request);
+
+    /**
+     * 查询日记
+     * @param bookId 日记本 ID
+     * @param diaryId 日记 ID
+     * @return 日记信息
+     */
+    SysDiaryFindVo findDiary(Long bookId, Long diaryId);
 }
