@@ -4,12 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.note.common.Result;
 import com.note.entity.SysDiary;
-import com.note.entity.request.diary.SysDiaryCreateRequest;
-import com.note.entity.request.diary.SysDiaryDeleteRequest;
-import com.note.entity.request.diary.SysDiaryEditRequest;
-import com.note.entity.request.diary.SysDiaryPageRequest;
+import com.note.entity.request.diary.*;
 import com.note.entity.vo.diary.SysDiaryFindVo;
 import com.note.entity.vo.diary.SysDiaryPageVo;
+import com.note.entity.vo.diary.SysDiaryWeatherVo;
 import com.note.service.SysDiaryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -75,5 +73,11 @@ public class SysDiaryController {
             return Result.fail("删除失败");
         }
         return Result.ok();
+    }
+
+    @Operation(summary = "根据经纬度获取气象数据")
+    @PostMapping("/weather")
+    public Result<SysDiaryWeatherVo> getWeather(@RequestBody SysDiaryWeatherRequest sysDiaryWeatherRequest) {
+        return Result.ok(sysDiaryService.getWeatherData(sysDiaryWeatherRequest));
     }
 }

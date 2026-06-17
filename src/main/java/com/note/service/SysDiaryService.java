@@ -3,11 +3,9 @@ package com.note.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.note.entity.SysDiary;
-import com.note.entity.request.diary.SysDiaryCreateRequest;
-import com.note.entity.request.diary.SysDiaryDeleteRequest;
-import com.note.entity.request.diary.SysDiaryEditRequest;
-import com.note.entity.request.diary.SysDiaryPageRequest;
+import com.note.entity.request.diary.*;
 import com.note.entity.vo.diary.SysDiaryFindVo;
+import com.note.entity.vo.diary.SysDiaryWeatherVo;
 
 public interface SysDiaryService extends IService<SysDiary> {
 
@@ -46,4 +44,11 @@ public interface SysDiaryService extends IService<SysDiary> {
      * @return 日记信息
      */
     SysDiaryFindVo findDiary(Long bookId, Long diaryId);
+
+    /**
+     * 获取天气信息
+     * @param sysDiaryWeatherRequest 天气信息参数
+     * @return 天气信息
+     */
+    SysDiaryWeatherVo getWeatherData(SysDiaryWeatherRequest sysDiaryWeatherRequest);
 }

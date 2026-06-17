@@ -5,17 +5,19 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.note.ai.model.CityData;
+import com.note.ai.tools.CityDataTool;
 import com.note.constant.ResultCode;
 import com.note.entity.SysDiary;
-import com.note.entity.request.diary.SysDiaryCreateRequest;
-import com.note.entity.request.diary.SysDiaryDeleteRequest;
-import com.note.entity.request.diary.SysDiaryEditRequest;
-import com.note.entity.request.diary.SysDiaryPageRequest;
+import com.note.entity.request.diary.*;
 import com.note.entity.vo.diary.SysDiaryFindVo;
+import com.note.entity.vo.diary.SysDiaryWeatherVo;
 import com.note.exception.BusinessException;
 import com.note.mapper.SysDiaryMapper;
 import com.note.service.SysDiaryService;
+import com.note.service.WeatherService;
 import com.note.utils.UserUtils;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,11 @@ import static com.note.constant.SystemParamSettingConstant.Diary_Title_Max_Count
 
 @Service
 public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> implements SysDiaryService {
+
+    @Resource
+    private WeatherService weatherService;
+
+
 
     @Override
     public Page<SysDiary> pageByUserId(SysDiaryPageRequest request) {
@@ -130,5 +137,24 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         SysDiaryFindVo sysDiaryFindVo = new SysDiaryFindVo();
         BeanUtil.copyProperties(sysDiary, sysDiaryFindVo);
         return sysDiaryFindVo;
+    }
+
+
+    /**
+     * 获取天气信息
+     * @param sysDiaryWeatherRequest 天气信息参数
+     * @return 天气信息
+     */
+    @Override
+    public SysDiaryWeatherVo getWeatherData(SysDiaryWeatherRequest sysDiaryWeatherRequest) {
+        Double lat = sysDiaryWeatherRequest.getLat();
+        Double lng = sysDiaryWeatherRequest.getLng();
+        if (lat == null || lng == null) {
+            throw new BusinessException(ResultCode.Empty);
+        }
+        SysDiaryWeatherVo sysDiaryWeatherVo = new SysDiaryWeatherVo();
+        CityData weatherNow = weatherService.getWeatherNow(lat, lng);
+        BeanUtil.copyProperties(weatherNow, sysDiaryWeatherVo);
+        return sysDiaryWeatherVo;
     }
 }
