@@ -4,16 +4,12 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.note.common.Result;
-import com.note.entity.SysMedia;
-import com.note.service.SysMediaService;
+import com.note.entity.vo.file.FileUploadVo;
 import com.note.utils.QiniuUtils;
-import com.note.utils.UserUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,7 +23,6 @@ import java.util.Map;
 public class FileController {
 
     private final QiniuUtils qiniuUtils;
-    private final SysMediaService sysMediaService;
 
     /** mediaType -> 七牛云存储文件夹 */
     private static final Map<Integer, String> TYPE_FOLDER = Map.of(
@@ -38,10 +33,9 @@ public class FileController {
 
     @Operation(summary = "上传文件")
     @PostMapping("/upload")
-    public Result<SysMedia> upload(
+    public Result<FileUploadVo> upload(
             @Parameter(description = "文件") @RequestParam("file") MultipartFile file,
             @Parameter(description = "文件类型：1-图片，2-视频，3-头像，4-用户封面") @RequestParam Integer mediaType,
-            @Parameter(description = "关联日记本ID") @RequestParam(required = false) Long bookId,
             @Parameter(description = "备注") @RequestParam(required = false) String remark) {
 
         if (file == null || file.isEmpty()) {
@@ -66,32 +60,20 @@ public class FileController {
             return Result.fail("文件上传失败，请稍后重试");
         }
 
-        SysMedia media = new SysMedia();
-        media.setUserId(UserUtils.currentUserId());
-        media.setBookId(bookId);
-        media.setMediaType(mediaType);
-        media.setFileName(originalName);
-        media.setFileUrl(url);
-        media.setFileSize(file.getSize());
-        media.setSuffix(suffix);
-        media.setRemark(remark);
-        sysMediaService.save(media);
-
-        return Result.ok(media);
+        FileUploadVo vo = new FileUploadVo(url, originalName, file.getSize(), suffix);
+        return Result.ok(vo);
     }
 
-    @Operation(summary = "删除文件")
-    @DeleteMapping("/{id}")
-    public Result<?> delete(@Parameter(description = "多媒体记录ID") @PathVariable Long id) {
-        SysMedia media = sysMediaService.getById(id);
-        if (media == null) {
-            return Result.fail("文件不存在");
+    @Operation(summary = "删除文件（仅对象存储）")
+    @DeleteMapping("/delete")
+    public Result<?> delete(@Parameter(description = "文件URL") @RequestParam String fileUrl) {
+        if (StrUtil.isBlank(fileUrl)) {
+            return Result.fail("文件URL不能为空");
         }
-        String key = qiniuUtils.resolveKey(media.getFileUrl());
+        String key = qiniuUtils.resolveKey(fileUrl);
         if (StrUtil.isNotBlank(key)) {
             qiniuUtils.delete(key);
         }
-        sysMediaService.removeById(id);
         return Result.ok();
     }
 }

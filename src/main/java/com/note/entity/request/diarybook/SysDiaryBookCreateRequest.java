@@ -15,4 +15,13 @@ public class SysDiaryBookCreateRequest {
     private Integer encrypted;
 
     private String password;
+
+    @Schema(description = "封面文件名")
+    private String coverFileName;
+
+    @Schema(description = "封面文件大小（字节）")
+    private Long coverFileSize;
+
+    @Schema(description = "封面文件后缀")
+    private String coverSuffix;
 }

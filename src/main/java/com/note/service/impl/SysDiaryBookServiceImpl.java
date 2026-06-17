@@ -95,6 +95,19 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
                     .build();
             sysDiaryBookSecretMapper.insert(bookSecret);
         }
+        // 自定义封面（有上传元数据）才创建媒体记录；预设封面是共享 CDN 资源，不需要
+        String cover = sysDiaryBookRequest.getCover();
+        if (res > 0 && StrUtil.isNotBlank(cover) && StrUtil.isNotBlank(sysDiaryBookRequest.getCoverFileName())) {
+            SysMedia media = new SysMedia();
+            media.setUserId(userId);
+            media.setBookId(sysDiaryBook.getId());
+            media.setMediaType(1);
+            media.setFileUrl(cover);
+            media.setFileName(sysDiaryBookRequest.getCoverFileName());
+            media.setFileSize(sysDiaryBookRequest.getCoverFileSize());
+            media.setSuffix(sysDiaryBookRequest.getCoverSuffix());
+            sysMediaMapper.insert(media);
+        }
         return res > 0;
     }
 

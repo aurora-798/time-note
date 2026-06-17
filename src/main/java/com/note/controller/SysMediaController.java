@@ -1,10 +1,12 @@
 package com.note.controller;
 
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.note.common.Result;
 import com.note.entity.SysMedia;
 import com.note.service.SysMediaService;
+import com.note.utils.QiniuUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class SysMediaController {
 
     private final SysMediaService sysMediaService;
+    private final QiniuUtils qiniuUtils;
 
     @Operation(summary = "分页查询多媒体")
     @GetMapping("/page")
@@ -57,6 +60,14 @@ public class SysMediaController {
     @Operation(summary = "删除多媒体")
     @DeleteMapping("/{id}")
     public Result<?> delete(@Parameter(description = "多媒体ID") @PathVariable Long id) {
+        SysMedia media = sysMediaService.getById(id);
+        if (media == null) {
+            return Result.fail("文件不存在");
+        }
+        String key = qiniuUtils.resolveKey(media.getFileUrl());
+        if (StrUtil.isNotBlank(key)) {
+            qiniuUtils.delete(key);
+        }
         sysMediaService.removeById(id);
         return Result.ok();
     }
