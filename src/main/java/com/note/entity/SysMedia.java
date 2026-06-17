@@ -15,19 +15,19 @@ public class SysMedia {
     @Schema(description = "文件ID")
     private Long id;
 
-    @Schema(description = "用户ID")
+    @Schema(description = "用户 ID")
     private Long userId;
 
-    @Schema(description = "关联日记ID")
-    private Long diaryId;
+    @Schema(description = "关联日记本 ID")
+    private Long bookId;
 
-    @Schema(description = "文件类型：1-图片，2-视频，3-其他")
+    @Schema(description = "文件类型")
     private Integer mediaType;
 
     @Schema(description = "文件名")
     private String fileName;
 
-    @Schema(description = "文件URL")
+    @Schema(description = "文件 URL")
     private String fileUrl;
 
     @Schema(description = "文件大小（字节）")

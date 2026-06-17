@@ -9,6 +9,7 @@ import com.note.constant.ResultCode;
 import com.note.entity.SysDiary;
 import com.note.entity.SysDiaryBook;
 import com.note.entity.SysDiaryBookSecret;
+import com.note.entity.SysMedia;
 import com.note.entity.request.diarybook.SysDiaryBookCreateRequest;
 import com.note.entity.request.diarybook.SysDiaryBookDelRequest;
 import com.note.entity.request.diarybook.SysDiaryBookEditRequest;
@@ -18,8 +19,10 @@ import com.note.exception.BusinessException;
 import com.note.mapper.SysDiaryBookMapper;
 import com.note.mapper.SysDiaryBookSecretMapper;
 import com.note.mapper.SysDiaryMapper;
+import com.note.mapper.SysMediaMapper;
 import com.note.service.SysDiaryBookService;
 import com.note.utils.BcryptUtils;
+import com.note.utils.QiniuUtils;
 import com.note.utils.UserUtils;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -40,6 +43,12 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
 
     @Resource
     private SysDiaryBookSecretMapper sysDiaryBookSecretMapper;
+
+    @Resource
+    private SysMediaMapper sysMediaMapper;
+
+    @Resource
+    private QiniuUtils qiniuUtils;
 
 
     /**
@@ -164,10 +173,23 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
         if (existing == null || !existing.getUserId().equals(userId)) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
-        // 先删除所有关联日记（条件 bookId = 日记本id，自动走逻辑删除）
-        LambdaQueryWrapper<SysDiary> sysDiaryLambdaQueryWrapper = new LambdaQueryWrapper<>();
-        sysDiaryLambdaQueryWrapper.eq(SysDiary::getBookId, bookId);
-        sysDiaryMapper.delete(sysDiaryLambdaQueryWrapper);
+        // 删除关联的媒体文件（对象存储 + 数据库记录）
+        LambdaQueryWrapper<SysMedia> mediaWrapper = new LambdaQueryWrapper<>();
+        mediaWrapper.eq(SysMedia::getBookId, bookId);
+        List<SysMedia> mediaList = sysMediaMapper.selectList(mediaWrapper);
+        for (SysMedia media : mediaList) {
+            String key = qiniuUtils.resolveKey(media.getFileUrl());
+            if (StrUtil.isNotBlank(key)) {
+                qiniuUtils.delete(key);
+            }
+        }
+        if (!mediaList.isEmpty()) {
+            sysMediaMapper.delete(mediaWrapper);
+        }
+        // 删除所有关联日记（逻辑删除）
+        LambdaQueryWrapper<SysDiary> diaryWrapper = new LambdaQueryWrapper<>();
+        diaryWrapper.eq(SysDiary::getBookId, bookId);
+        sysDiaryMapper.delete(diaryWrapper);
         // 删除日记本
         int result = sysDiaryBookMapper.deleteById(bookId);
         return result > 0;

@@ -33,14 +33,15 @@ public class FileController {
     private static final Map<Integer, String> TYPE_FOLDER = Map.of(
             1, "image",
             2, "video",
-            3,"avatar");
+            3, "avatar",
+            4, "user-cover");
 
     @Operation(summary = "上传文件")
     @PostMapping("/upload")
     public Result<SysMedia> upload(
             @Parameter(description = "文件") @RequestParam("file") MultipartFile file,
-            @Parameter(description = "文件类型：1-图片，2-视频，3-头像") @RequestParam Integer mediaType,
-            @Parameter(description = "关联日记ID") @RequestParam(required = false) Long diaryId,
+            @Parameter(description = "文件类型：1-图片，2-视频，3-头像，4-用户封面") @RequestParam Integer mediaType,
+            @Parameter(description = "关联日记本ID") @RequestParam(required = false) Long bookId,
             @Parameter(description = "备注") @RequestParam(required = false) String remark) {
 
         if (file == null || file.isEmpty()) {
@@ -48,7 +49,7 @@ public class FileController {
         }
         String folder = TYPE_FOLDER.get(mediaType);
         if (folder == null) {
-            return Result.fail("不支持的文件类型，mediaType 仅支持 1-图片、2-视频、3-头像");
+            return Result.fail("不支持的文件类型，mediaType 仅支持 1-图片、2-视频、3-头像、4-用户封面");
         }
 
         String originalName = file.getOriginalFilename();
@@ -67,7 +68,7 @@ public class FileController {
 
         SysMedia media = new SysMedia();
         media.setUserId(UserUtils.currentUserId());
-        media.setDiaryId(diaryId);
+        media.setBookId(bookId);
         media.setMediaType(mediaType);
         media.setFileName(originalName);
         media.setFileUrl(url);

@@ -1,7 +1,10 @@
 package com.note.controller;
 
 
+import cn.hutool.core.bean.BeanUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.note.common.Result;
+import com.note.entity.SysDiary;
 import com.note.entity.SysDiaryBook;
 import com.note.entity.request.diarybook.SysDiaryBookCreateRequest;
 import com.note.entity.request.diarybook.SysDiaryBookDelRequest;
@@ -9,6 +12,7 @@ import com.note.entity.request.diarybook.SysDiaryBookEditRequest;
 import com.note.entity.request.diarybook.SysDiaryBookVerifyRequest;
 import com.note.entity.vo.diarybook.*;
 import com.note.service.SysDiaryBookService;
+import com.note.service.SysDiaryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -24,17 +28,29 @@ public class SysDiaryBookController {
 
     private final SysDiaryBookService sysDiaryBookService;
 
+    private final SysDiaryService sysDiaryService;
+
     @Operation(summary = "获取用户日记本列表")
     @PostMapping("/list")
-    public Result<SysDiaryBookListVo> getDiaryBookList() {
+    public Result<List<SysDiaryBookListVo>> getDiaryBookList() {
         List<SysDiaryBook> sysDiaryBooks = sysDiaryBookService.listByUserId();
 
-        SysDiaryBookListVo sysDiaryBookVo = SysDiaryBookListVo.builder()
-                .list(sysDiaryBooks)
-                .entryCount(sysDiaryBooks.size())
-                .build();
+        List<SysDiaryBookListVo> diaryBookListVos = sysDiaryBooks.stream()
+                .map(sysDiaryBook -> {
+                    Long bookId = sysDiaryBook.getId();
+                    LambdaQueryWrapper<SysDiary> sysDiaryLambdaQueryWrapper = new LambdaQueryWrapper<>();
+                    sysDiaryLambdaQueryWrapper.eq(SysDiary::getBookId, bookId);
+                    long entryCount = sysDiaryService.count(sysDiaryLambdaQueryWrapper);
+                    SysDiaryBookListVo sysDiaryBookListVo = new SysDiaryBookListVo();
+                    SysDiaryBookFindVo sysDiaryBookFindVo = new SysDiaryBookFindVo();
+                    BeanUtil.copyProperties(sysDiaryBook,sysDiaryBookFindVo);
 
-        return Result.ok(sysDiaryBookVo);
+                    sysDiaryBookListVo.setSysDiaryBookFindVo(sysDiaryBookFindVo);
+                    sysDiaryBookListVo.setEntryCount(entryCount);
+                    return sysDiaryBookListVo;
+                }).toList();
+
+        return Result.ok(diaryBookListVos);
     }
 
     @Operation(summary = "根据 bookId 获取用户日记本信息")

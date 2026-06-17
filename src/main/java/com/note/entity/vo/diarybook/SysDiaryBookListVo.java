@@ -7,10 +7,9 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-@Builder
 public class SysDiaryBookListVo {
-    // 日记本列表
-    private List<SysDiaryBook> list;
+    // 日记本信息
+    private SysDiaryBookFindVo sysDiaryBookFindVo;
     // 日记本数量
-    private Integer entryCount;
+    private long entryCount;
 }

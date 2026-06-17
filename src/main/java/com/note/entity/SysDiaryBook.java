@@ -37,4 +37,8 @@ public class SysDiaryBook implements Serializable {
     @TableField(fill = FieldFill.INSERT)
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
+
+    @TableLogic
+    @Schema(description = "逻辑删除标记")
+    private Integer deleteFlag;
 }

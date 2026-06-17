@@ -18,4 +18,6 @@ public class SysDiaryBookFindVo {
     private String font;
 
     private Integer encrypted;
+
+    private LocalDateTime createTime;
 }
