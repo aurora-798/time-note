@@ -68,6 +68,7 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         BeanUtil.copyProperties(request, sysDiary);
         sysDiary.setUserId(userId);
         sysDiary.setDiaryDate(LocalDate.now());
+        sysDiary.setWordCount(request.getContent().length());
         return save(sysDiary);
     }
 
@@ -90,6 +91,8 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         }
         SysDiary sysDiary = new SysDiary();
         BeanUtil.copyProperties(request, sysDiary);
+        // 更新字数
+        sysDiary.setWordCount(request.getContent().length());
         return updateById(sysDiary);
     }
 
