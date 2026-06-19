@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.note.ai.model.CityData;
-import com.note.ai.tools.CityDataTool;
+import com.note.ai.utils.RagUtils;
 import com.note.constant.ResultCode;
 import com.note.entity.SysDiary;
 import com.note.entity.request.diary.*;
@@ -17,12 +17,20 @@ import com.note.mapper.SysDiaryMapper;
 import com.note.service.SysDiaryService;
 import com.note.service.WeatherService;
 import com.note.utils.UserUtils;
+import dev.langchain4j.data.document.Document;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.output.Response;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.Filter;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-
+import java.util.List;
 import static com.note.constant.SystemParamSettingConstant.Diary_Title_Max_Count;
 
 @Service
@@ -31,7 +39,38 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
     @Resource
     private WeatherService weatherService;
 
+    @Resource
+    private RagUtils ragUtils;
 
+    /**
+     * 新增日记同步向量库
+     */
+    public void saveDiaryToVector(SysDiary sysDiary) {
+        // 1. 实体转带元数据文档
+        Document document = ragUtils.toDocument(sysDiary);
+        // 2. 自适应分块
+        List<TextSegment> textSegments = ragUtils.autoSplit(document);
+        // 3. 将分块批量写入向量库
+        ragUtils.embeddingSaveTextAndStore(textSegments);
+    }
+
+    /**
+     * 更新日记向量：先删旧，再存新
+     */
+    public void updateDiaryVector(SysDiary sysDiary) {
+        String diaryIdStr = sysDiary.getId().toString();
+        // 根据 diaryId 删除全部旧向量片段
+        Filter filter = new IsEqualTo("diaryId", diaryIdStr);
+        // 写入更新后的向量
+        ragUtils.embeddingUpdateTextAndStore(filter,sysDiary);
+    }
+
+    /**
+     * 删除日记对应向量
+     */
+    public void deleteDiaryVector(Long diaryId) {
+        ragUtils.embeddingDelText(diaryId.toString());
+    }
 
     @Override
     public Page<SysDiary> pageByUserId(SysDiaryPageRequest request) {
@@ -64,12 +103,22 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         if (request.getTitle().length() > Diary_Title_Max_Count) {
             throw new BusinessException(ResultCode.MORE_THAN_MAX_LENGTH);
         }
+
+        // 保存 DS
         SysDiary sysDiary = new SysDiary();
         BeanUtil.copyProperties(request, sysDiary);
         sysDiary.setUserId(userId);
         sysDiary.setDiaryDate(LocalDate.now());
         sysDiary.setWordCount(request.getContent().length());
-        return save(sysDiary);
+        boolean save = save(sysDiary);
+
+        // 将日记添加到向量数据库
+        try {
+            saveDiaryToVector(sysDiary);
+        } catch (Exception e) {
+            log.error("日记向量入库失败，diaryId:" + sysDiary.getId());
+        }
+        return save;
     }
 
     @Override
@@ -93,7 +142,17 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         BeanUtil.copyProperties(request, sysDiary);
         // 更新字数
         sysDiary.setWordCount(request.getContent().length());
-        return updateById(sysDiary);
+        boolean update = updateById(sysDiary);
+
+        if(update) {
+            try {
+                updateDiaryVector(sysDiary);
+            } catch (Exception e) {
+                log.error("日记向量更新失败，diaryId:" + request.getId());
+            }
+
+        }
+        return update;
     }
 
     @Override
@@ -110,7 +169,15 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         if (existing == null || !existing.getUserId().equals(userId)) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
-        return removeById(request.getId());
+        boolean remove = removeById(request.getId());
+        if(remove) {
+            try {
+                deleteDiaryVector(request.getId());
+            } catch (Exception e) {
+                log.error("日记向量删除失败，diaryId:" + request.getId());
+            }
+        }
+        return remove;
     }
 
 
