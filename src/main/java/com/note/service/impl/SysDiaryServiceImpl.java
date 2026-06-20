@@ -140,6 +140,7 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         // 更新字数
         sysDiary.setWordCount(request.getContent().length());
         sysDiary.setUserId(userId);
+        sysDiary.setDiaryDate(LocalDate.now());
         boolean update = updateById(sysDiary);
 
         if(update) {
