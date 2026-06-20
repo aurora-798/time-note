@@ -1,5 +1,6 @@
 package com.note.ai.utils;
 
+import cn.hutool.core.util.StrUtil;
 import com.note.entity.SysDiary;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
@@ -103,7 +104,10 @@ public class RagUtils {
     /**
      * 更新向量数据库
      */
-    public void embeddingUpdateTextAndStore(Filter filter,SysDiary sysDiary) {
+    public void embeddingUpdateTextAndStore(SysDiary sysDiary) {
+        String diaryIdStr = sysDiary.getId().toString();
+        // 根据 diaryId 删除全部旧向量片段
+        Filter filter = new IsEqualTo("diaryId", diaryIdStr);
         embeddingStore.removeAll(filter);
         // 1. 实体转带元数据文档
         Document document = toDocument(sysDiary);
@@ -124,49 +128,63 @@ public class RagUtils {
      * 将单条日记实体转为LangChain4j Document
      */
     public Document toDocument(SysDiary diary) {
-        // 拼接日记结构化文本
-        String fullText = String.format("""
-                日记本ID：%s
-                日记ID: %s
-                用户ID：%s
-                日记日期：%s
-                标题：%s
-                地点：%s%s
-                天气：%s，温度：%s
-                日记标题：%s
-                日记正文：%s
-                日记字数：%s
-                """,
-                diary.getId(),
-                diary.getBookId(),
-                diary.getUserId(),
-                diary.getDiaryDate(),
-                diary.getTitle(),
-                diary.getName(), diary.getAdm2(),
-                diary.getText(),
-                diary.getTemp(),
-                diary.getTitle(),
-                diary.getContent(),
-                diary.getWordCount()
+        // 1. 统一使用StrUtil处理所有字段，null/空串/空白全部转为空字符串
+        String diaryId = StrUtil.toString(diary.getId());
+        String bookId = StrUtil.toString(diary.getBookId());
+        String userId = StrUtil.toString(diary.getUserId());
+        String diaryDate = StrUtil.toString(diary.getDiaryDate());
+        String title = StrUtil.trim(diary.getTitle());
+        String city = StrUtil.trim(diary.getName());
+        String district = StrUtil.trim(diary.getAdm2());
+        String weatherText = StrUtil.trim(diary.getText());
+        String temp = StrUtil.trim(diary.getTemp());
+        String content = StrUtil.trim(diary.getContent());
+        String wordCount = StrUtil.toString(diary.getWordCount());
+
+        // 2. 地点拼接优化：无地点时不输出多余内容
+        String locationLine = StrUtil.isBlank(city) && StrUtil.isBlank(district)
+                ? ""
+                : StrUtil.format("地点：{}{}", city, district);
+
+        // 3. 拼接完整文本，消除null字样、重复标题、多余空行
+        String fullText = StrUtil.format("""
+            日记本ID：{}
+            日记ID: {}
+            用户ID：{}
+            日记日期：{}
+            标题：{}
+            {}
+            天气：{}，温度：{}
+            日记正文：{}
+            日记字数：{}
+            """,
+                bookId,
+                diaryId,
+                userId,
+                diaryDate,
+                title,
+                locationLine,
+                weatherText,
+                temp,
+                content,
+                wordCount
         );
 
-        // 构建元数据
-        Metadata metadata = new Metadata()
-                // 权限&唯一标识（必选）
-                .put("diaryId", diary.getId().toString())
-                .put("userId", diary.getUserId().toString())
-                .put("bookId", diary.getBookId().toString())
-                // 标题筛选
-                .put("title", diary.getTitle())
-                // 时间筛选
-                .put("diaryDate", diary.getDiaryDate().toString())
-                // 字数筛选
-                .put("wordCount", diary.getWordCount().toString())
-                // 地点、天气筛选（建议存入元数据）
-                .put("city", diary.getName())
-                .put("district", diary.getAdm2())
-                .put("weatherText", diary.getText())
-                .put("temperature", diary.getTemp());
+        // 4. 构建元数据，仅存入非空字段，减少无效过滤干扰
+        Metadata metadata = new Metadata();
+        // 主键必存（ID不可能为空，业务约束）
+        metadata.put("diaryId", diaryId);
+        metadata.put("userId", userId);
+        metadata.put("bookId", bookId);
+
+        // 有值才存入元数据，避免存空字符串干扰检索筛选
+        if (StrUtil.isNotBlank(title)) metadata.put("title", title);
+        if (StrUtil.isNotBlank(diaryDate)) metadata.put("diaryDate", diaryDate);
+        if (StrUtil.isNotBlank(wordCount)) metadata.put("wordCount", wordCount);
+        if (StrUtil.isNotBlank(city)) metadata.put("city", city);
+        if (StrUtil.isNotBlank(district)) metadata.put("district", district);
+        if (StrUtil.isNotBlank(weatherText)) metadata.put("weatherText", weatherText);
+        if (StrUtil.isNotBlank(temp)) metadata.put("temperature", temp);
 
         return Document.document(fullText, metadata);
     }

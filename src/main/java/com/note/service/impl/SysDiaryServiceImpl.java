@@ -58,11 +58,8 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
      * 更新日记向量：先删旧，再存新
      */
     public void updateDiaryVector(SysDiary sysDiary) {
-        String diaryIdStr = sysDiary.getId().toString();
-        // 根据 diaryId 删除全部旧向量片段
-        Filter filter = new IsEqualTo("diaryId", diaryIdStr);
         // 写入更新后的向量
-        ragUtils.embeddingUpdateTextAndStore(filter,sysDiary);
+        ragUtils.embeddingUpdateTextAndStore(sysDiary);
     }
 
     /**
@@ -142,6 +139,7 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         BeanUtil.copyProperties(request, sysDiary);
         // 更新字数
         sysDiary.setWordCount(request.getContent().length());
+        sysDiary.setUserId(userId);
         boolean update = updateById(sysDiary);
 
         if(update) {

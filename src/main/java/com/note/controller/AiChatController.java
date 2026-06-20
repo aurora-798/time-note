@@ -14,6 +14,11 @@ public class AiChatController {
     @Resource
     private AiChatService aiChatService;
 
+    /**
+     * 聊天
+     * @param aiChatDto
+     * @return
+     */
     @PostMapping
     public Result<AiChatVo> chat(@RequestBody AiChatDto aiChatDto) {
         String userId = aiChatDto.getUserId();
