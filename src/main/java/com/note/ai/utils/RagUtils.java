@@ -32,8 +32,8 @@ public class RagUtils {
     private EmbeddingStore<TextSegment> embeddingStore;
 
     // 长文本分割参数
-    private  final int CHUNK_SIZE = 500;
-    private  final int OVERLAP = 100;
+    private final int CHUNK_SIZE = 500;
+    private final int OVERLAP = 100;
 
 
     /**
@@ -60,7 +60,7 @@ public class RagUtils {
 
     /**
      * 根据用户问题，检索当前用户相关日记片段
-     * @param userId 当前登录用户ID
+     * @param userId 当前登录用户 ID
      * @param question 用户提问
      * @param maxResult 最多返回几条片段
      * @param minScore 相似度阈值（0~1，越高越相关）
@@ -73,7 +73,7 @@ public class RagUtils {
 
         // 2. 构建检索请求
         EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
-                .queryEmbedding(question)     // 用户提问，自动调用text-embedding-v4向量化
+                .queryEmbedding(question)     // 用户提问，自动调用 text-embedding-v4 向量化
                 .filter(userFilter)     // 用户隔离，看不到别人日记
                 .maxResults(maxResult)   // 召回条数
                 .minScore(minScore)      // 低于该相似度直接丢弃

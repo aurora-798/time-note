@@ -9,6 +9,7 @@ import com.note.service.AiChatService;
 import com.note.utils.UserUtils;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 @Service
 public class AiChatServiceImpl implements AiChatService {
@@ -27,7 +28,7 @@ public class AiChatServiceImpl implements AiChatService {
      * @return 聊天结果
      */
     @Override
-    public String chat(String userId, String userMessage) {
+    public Flux<String> chat(String userId, String userMessage) {
         Long currentUserId = UserUtils.currentUserId();
         if(currentUserId == null) {
             throw new BusinessException(ResultCode.NOT_LOGIN);

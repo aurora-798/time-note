@@ -33,10 +33,13 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // SSE/Flux 等异步 dispatch 会再次进入 Security 链，需自动持久化 SecurityContext
+            .securityContext(securityContext -> securityContext.requireExplicitSave(false))
             .authorizeHttpRequests(auth -> auth
                 // 放行所有预检请求
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/error").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html",
                         "/v3/api-docs/**", "/doc.html", "/webjars/**").permitAll()
                 .anyRequest().authenticated())

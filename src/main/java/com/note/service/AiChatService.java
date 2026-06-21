@@ -1,5 +1,7 @@
 package com.note.service;
 
+import reactor.core.publisher.Flux;
+
 public interface AiChatService {
 
     /**
@@ -8,5 +10,5 @@ public interface AiChatService {
      * @param userMessage 用户消息
      * @return 聊天结果
      */
-    String chat(String userId,String userMessage);
+    Flux<String> chat(String userId, String userMessage);
 }
