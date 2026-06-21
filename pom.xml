@@ -119,6 +119,12 @@
             <version>1.16.3-beta26</version>
         </dependency>
 
+        <dependency>
+            <groupId>io.qdrant</groupId>
+            <artifactId>client</artifactId>
+            <version>1.18.1</version>
+        </dependency>
+
 
         <dependency>
             <groupId>com.github.xiaoymin</groupId>

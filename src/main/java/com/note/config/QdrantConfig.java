@@ -1,22 +1,17 @@
 package com.note.config;
 
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.qdrant.QdrantEmbeddingStore;
+import io.qdrant.client.QdrantClient;
+import io.qdrant.client.QdrantGrpcClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class QdrantConfig {
-    // 统一常量
-    public static final String COLLECTION_NAME = "time-note";
 
-    @Bean
-    public EmbeddingStore<TextSegment> embeddingStore() {
-        return QdrantEmbeddingStore.builder()
-                .host("localhost")
-                .port(6334)
-                .collectionName(COLLECTION_NAME)
-                .build();
+    @Bean(destroyMethod = "close")
+    public QdrantClient qdrantClient(QdrantProperties properties) {
+        return new QdrantClient(
+                QdrantGrpcClient.newBuilder(properties.getHost(), properties.getPort(), false)
+                        .build());
     }
 }
