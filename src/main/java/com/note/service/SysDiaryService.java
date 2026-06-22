@@ -43,7 +43,7 @@ public interface SysDiaryService extends IService<SysDiary> {
      * @param diaryId 日记 ID
      * @return 日记信息
      */
-    SysDiaryFindVo findDiary(Long bookId, Long diaryId);
+    SysDiaryFindVo findDiary(Long bookId, Long diaryId, String password);
 
     /**
      * 获取天气信息

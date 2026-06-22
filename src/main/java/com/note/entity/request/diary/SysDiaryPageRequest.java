@@ -15,4 +15,7 @@ public class SysDiaryPageRequest {
 
     @Schema(description = "日记本ID（可选，不传则查全部）")
     private Long bookId;
+
+    @Schema(description = "加密日记本密码（查询加密本时必填）")
+    private String password;
 }

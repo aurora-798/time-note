@@ -9,4 +9,7 @@ public class SysDiaryDeleteRequest {
 
     @Schema(description = "日记ID")
     private Long id;
+
+    @Schema(description = "加密日记本密码（删除加密本内日记时必填）")
+    private String password;
 }

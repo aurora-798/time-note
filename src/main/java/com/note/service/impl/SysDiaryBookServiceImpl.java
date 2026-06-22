@@ -119,18 +119,41 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
     public void DiaryBookVerify(SysDiaryBookVerifyRequest sysDiaryBookVerify) {
         Long bookId = sysDiaryBookVerify.getBookId();
         String password = sysDiaryBookVerify.getPassword();
-        if(bookId == null || StrUtil.isBlank(password)) {
+        if (bookId == null || StrUtil.isBlank(password)) {
             throw new BusinessException(ResultCode.PARAM_ERROR);
+        }
+        assertBookAccess(bookId, password);
+    }
+
+    /**
+     * 校验当前用户对日记本的访问权限（归属权 + 加密密码）
+     */
+    @Override
+    public void assertBookAccess(Long bookId, String password) {
+        if (bookId == null) {
+            throw new BusinessException(ResultCode.PARAM_ERROR);
+        }
+        Long userId = UserUtils.currentUserId();
+        if (userId == null) {
+            throw new BusinessException(ResultCode.NOT_LOGIN);
+        }
+        SysDiaryBook sysDiaryBook = sysDiaryBookMapper.selectById(bookId);
+        if (sysDiaryBook == null || !sysDiaryBook.getUserId().equals(userId)) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        if (sysDiaryBook.getEncrypted() == null || sysDiaryBook.getEncrypted() != 1) {
+            return;
+        }
+        if (StrUtil.isBlank(password)) {
+            throw new BusinessException(ResultCode.PASSWORD_ERROR);
         }
         LambdaQueryWrapper<SysDiaryBookSecret> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(SysDiaryBookSecret::getBookId, bookId);
         SysDiaryBookSecret sysDiaryBookSecret = sysDiaryBookSecretMapper.selectOne(lambdaQueryWrapper);
-        if(sysDiaryBookSecret == null) {
+        if (sysDiaryBookSecret == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
-        String hash = sysDiaryBookSecret.getSecretHash();
-        boolean verify = BcryptUtils.checkBcrypt(password, hash);
-        if(!verify) {
+        if (!BcryptUtils.checkBcrypt(password, sysDiaryBookSecret.getSecretHash())) {
             throw new BusinessException(ResultCode.PASSWORD_ERROR);
         }
     }
@@ -214,22 +237,12 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
      * @return 日记本信息
      */
     @Override
-    public SysDiaryBookFindVo listByBookId(Long bookId) {
+    public SysDiaryBookFindVo listByBookId(Long bookId, String password) {
         if(bookId == null) {
             throw new BusinessException(ResultCode.PARAM_ERROR);
         }
-        Long userId = UserUtils.currentUserId();
-        if(userId == null) {
-            throw new BusinessException(ResultCode.NOT_LOGIN);
-        }
+        assertBookAccess(bookId, password);
         SysDiaryBook sysDiaryBook = sysDiaryBookMapper.selectById(bookId);
-        if (sysDiaryBook == null) {
-            throw new BusinessException(ResultCode.NOT_FOUND);
-        }
-        Long sysDiaryBookUserId = sysDiaryBook.getUserId();
-        if(!sysDiaryBookUserId.equals(userId)) {
-            throw new BusinessException(ResultCode.NOT_FOUND);
-        }
         SysDiaryBookFindVo sysDiaryBookFindVo = new SysDiaryBookFindVo();
         BeanUtil.copyProperties(sysDiaryBook, sysDiaryBookFindVo);
         return sysDiaryBookFindVo;

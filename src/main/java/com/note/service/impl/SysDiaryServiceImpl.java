@@ -14,6 +14,7 @@ import com.note.entity.vo.diary.SysDiaryFindVo;
 import com.note.entity.vo.diary.SysDiaryWeatherVo;
 import com.note.exception.BusinessException;
 import com.note.mapper.SysDiaryMapper;
+import com.note.service.SysDiaryBookService;
 import com.note.service.SysDiaryService;
 import com.note.service.WeatherService;
 import com.note.utils.UserUtils;
@@ -35,6 +36,9 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
 
     @Resource
     private RagUtils ragUtils;
+
+    @Resource
+    private SysDiaryBookService sysDiaryBookService;
 
     /**
      * 新增日记同步向量库
@@ -75,6 +79,7 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         LambdaQueryWrapper<SysDiary> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysDiary::getUserId, userId);
         if (request.getBookId() != null) {
+            sysDiaryBookService.assertBookAccess(request.getBookId(), request.getPassword());
             wrapper.eq(SysDiary::getBookId, request.getBookId());
         }
         wrapper.orderByDesc(SysDiary::getDiaryDate);
@@ -94,6 +99,7 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         if (request.getTitle().length() > Diary_Title_Max_Count) {
             throw new BusinessException(ResultCode.MORE_THAN_MAX_LENGTH);
         }
+        sysDiaryBookService.assertBookAccess(request.getBookId(), request.getPassword());
 
         // 保存 DS
         SysDiary sysDiary = new SysDiary();
@@ -129,6 +135,8 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         if (existing == null || !existing.getUserId().equals(userId)) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
+        Long bookId = request.getBookId() != null ? request.getBookId() : existing.getBookId();
+        sysDiaryBookService.assertBookAccess(bookId, request.getPassword());
         SysDiary sysDiary = new SysDiary();
         BeanUtil.copyProperties(request, sysDiary);
         // 更新字数
@@ -162,6 +170,7 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         if (existing == null || !existing.getUserId().equals(userId)) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
+        sysDiaryBookService.assertBookAccess(existing.getBookId(), request.getPassword());
         boolean remove = removeById(request.getId());
         if(remove) {
             try {
@@ -181,7 +190,7 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
      * @return 日记信息
      */
     @Override
-    public SysDiaryFindVo findDiary(Long bookId, Long diaryId) {
+    public SysDiaryFindVo findDiary(Long bookId, Long diaryId, String password) {
         if(bookId == null || diaryId == null) {
             throw new BusinessException(ResultCode.Empty);
         }
@@ -189,12 +198,13 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         if(userId == null) {
             throw new BusinessException(ResultCode.NOT_LOGIN);
         }
+        sysDiaryBookService.assertBookAccess(bookId, password);
         LambdaQueryWrapper<SysDiary> sysDiaryLambdaQueryWrapper = new LambdaQueryWrapper<>();
         sysDiaryLambdaQueryWrapper.eq(SysDiary::getId, diaryId)
+                .eq(SysDiary::getBookId, bookId)
                 .eq(SysDiary::getUserId, userId);
         SysDiary sysDiary = baseMapper.selectOne(sysDiaryLambdaQueryWrapper);
-        Long diaryUserId = sysDiary.getUserId();
-        if(!diaryUserId.equals(userId)) {
+        if (sysDiary == null) {
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         SysDiaryFindVo sysDiaryFindVo = new SysDiaryFindVo();

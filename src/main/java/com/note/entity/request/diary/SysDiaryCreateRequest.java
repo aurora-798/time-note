@@ -30,4 +30,7 @@ public class SysDiaryCreateRequest {
     @Schema(description = "温度")
     private String temp;
 
+    @Schema(description = "加密日记本密码（写入加密本时必填）")
+    private String password;
+
 }

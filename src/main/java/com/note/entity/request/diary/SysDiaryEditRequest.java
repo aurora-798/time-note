@@ -32,4 +32,7 @@ public class SysDiaryEditRequest {
 
     @Schema(description = "温度")
     private String temp;
+
+    @Schema(description = "加密日记本密码（编辑加密本内日记时必填）")
+    private String password;
 }

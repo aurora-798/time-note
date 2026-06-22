@@ -33,6 +33,11 @@ public interface SysDiaryBookService extends IService<SysDiaryBook> {
     void DiaryBookVerify(SysDiaryBookVerifyRequest sysDiaryBookVerify);
 
     /**
+     * 校验当前用户对日记本的访问权限（归属权 + 加密密码）
+     */
+    void assertBookAccess(Long bookId, String password);
+
+    /**
      * 修改日记本
      * @param sysDiaryBookEditRequest 日记本信息
      * @return 是否修改成功
@@ -52,5 +57,5 @@ public interface SysDiaryBookService extends IService<SysDiaryBook> {
      * @param bookId 日记本 ID
      * @return 日记本信息
      */
-    SysDiaryBookFindVo listByBookId(Long bookId);
+    SysDiaryBookFindVo listByBookId(Long bookId, String password);
 }

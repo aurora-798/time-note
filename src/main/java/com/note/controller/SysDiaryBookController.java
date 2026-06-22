@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.note.common.Result;
 import com.note.entity.SysDiary;
 import com.note.entity.SysDiaryBook;
+import com.note.entity.request.diarybook.BookPasswordRequest;
 import com.note.entity.request.diarybook.SysDiaryBookCreateRequest;
 import com.note.entity.request.diarybook.SysDiaryBookDelRequest;
 import com.note.entity.request.diarybook.SysDiaryBookEditRequest;
@@ -55,8 +56,11 @@ public class SysDiaryBookController {
 
     @Operation(summary = "根据 bookId 获取用户日记本信息")
     @PostMapping("/{bookId}")
-    public Result<SysDiaryBookFindVo> getDiaryBookById(@PathVariable Long bookId) {
-        SysDiaryBookFindVo sysDiaryBook = sysDiaryBookService.listByBookId(bookId);
+    public Result<SysDiaryBookFindVo> getDiaryBookById(
+            @PathVariable Long bookId,
+            @RequestBody(required = false) BookPasswordRequest request) {
+        String password = request != null ? request.getPassword() : null;
+        SysDiaryBookFindVo sysDiaryBook = sysDiaryBookService.listByBookId(bookId, password);
         return Result.ok(sysDiaryBook);
     }
 

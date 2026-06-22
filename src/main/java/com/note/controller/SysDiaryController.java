@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.note.common.Result;
 import com.note.entity.SysDiary;
 import com.note.entity.request.diary.*;
+import com.note.entity.request.diarybook.BookPasswordRequest;
+import com.note.entity.request.diarybook.SysDiaryBookCreateRequest;
 import com.note.entity.vo.diary.SysDiaryFindVo;
 import com.note.entity.vo.diary.SysDiaryPageVo;
 import com.note.entity.vo.diary.SysDiaryWeatherVo;
@@ -48,8 +50,11 @@ public class SysDiaryController {
 
     @Operation(summary = "查询日记")
     @PostMapping("/{bookId}/{diaryId}")
-    public Result<SysDiaryFindVo> findDiary(@PathVariable Long bookId, @PathVariable Long diaryId) {
-        SysDiaryFindVo sysDiaryFindVo = sysDiaryService.findDiary(bookId,diaryId);
+    public Result<SysDiaryFindVo> findDiary(@PathVariable Long bookId,
+                                            @PathVariable Long diaryId,
+                                            @RequestBody(required = false) BookPasswordRequest request) {
+        String password = request != null ? request.getPassword() : null;
+        SysDiaryFindVo sysDiaryFindVo = sysDiaryService.findDiary(bookId, diaryId, password);
         return Result.ok(sysDiaryFindVo);
     }
 
