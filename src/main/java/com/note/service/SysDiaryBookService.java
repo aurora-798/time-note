@@ -34,8 +34,9 @@ public interface SysDiaryBookService extends IService<SysDiaryBook> {
 
     /**
      * 校验当前用户对日记本的访问权限（归属权 + 加密密码）
+     * 如果没有权限则抛出异常，有权限则返回日记本对象
      */
-    void assertBookAccess(Long bookId, String password);
+    SysDiaryBook assertBookAccess(Long bookId, String password);
 
     /**
      * 修改日记本

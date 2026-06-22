@@ -57,7 +57,7 @@ public class RagUtils {
         }
 
         if (textSegments.isEmpty()) {
-            return RagSearchResult.withContext("没有找到和你问题相关的日记内容");
+            return RagSearchResult.noMatchReply();
         }
 
         StringBuilder context = new StringBuilder();
@@ -65,7 +65,7 @@ public class RagUtils {
             context.append(seg.text());
             context.append("\n-------------------------\n");
         }
-        return RagSearchResult.withContext(context.toString());
+        return RagSearchResult.withContext(context.toString(), textSegments.size());
     }
 
 
@@ -93,6 +93,7 @@ public class RagUtils {
         String bookId = StrUtil.toString(diary.getBookId());
         String userId = StrUtil.toString(diary.getUserId());
         String diaryDate = StrUtil.toString(diary.getDiaryDate());
+        String bookName = StrUtil.trim(diary.getBookName());
         String title = StrUtil.trim(diary.getTitle());
         String city = StrUtil.trim(diary.getName());
         String district = StrUtil.trim(diary.getAdm2());
@@ -100,6 +101,7 @@ public class RagUtils {
         String temp = StrUtil.trim(diary.getTemp());
         String content = StrUtil.trim(diary.getContent());
         String wordCount = StrUtil.toString(diary.getWordCount());
+
 
         String locationLine = StrUtil.isBlank(city) && StrUtil.isBlank(district)
                 ? ""
@@ -110,7 +112,8 @@ public class RagUtils {
             日记ID: {}
             用户ID：{}
             日记日期：{}
-            标题：{}
+            日记本名称：{}
+            日记标题：{}
             {}
             天气：{}，温度：{}
             日记正文：{}
@@ -120,6 +123,7 @@ public class RagUtils {
                 diaryId,
                 userId,
                 diaryDate,
+                bookName,
                 title,
                 locationLine,
                 weatherText,
@@ -133,6 +137,7 @@ public class RagUtils {
         metadata.put("userId", userId);
         metadata.put("bookId", bookId);
 
+        if (StrUtil.isNotBlank(bookName)) metadata.put("bookName", bookName);
         if (StrUtil.isNotBlank(title)) metadata.put("title", title);
         if (StrUtil.isNotBlank(diaryDate)) metadata.put("diaryDate", diaryDate);
         if (StrUtil.isNotBlank(wordCount)) metadata.put("wordCount", wordCount);

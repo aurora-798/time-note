@@ -9,6 +9,7 @@ import com.note.ai.model.CityData;
 import com.note.ai.utils.RagUtils;
 import com.note.constant.ResultCode;
 import com.note.entity.SysDiary;
+import com.note.entity.SysDiaryBook;
 import com.note.entity.request.diary.*;
 import com.note.entity.vo.diary.SysDiaryFindVo;
 import com.note.entity.vo.diary.SysDiaryWeatherVo;
@@ -99,11 +100,13 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
         if (request.getTitle().length() > Diary_Title_Max_Count) {
             throw new BusinessException(ResultCode.MORE_THAN_MAX_LENGTH);
         }
-        sysDiaryBookService.assertBookAccess(request.getBookId(), request.getPassword());
+        SysDiaryBook sysDiaryBook = sysDiaryBookService.assertBookAccess(request.getBookId(),
+                request.getPassword());
 
         // 保存 DS
         SysDiary sysDiary = new SysDiary();
         BeanUtil.copyProperties(request, sysDiary);
+        sysDiary.setBookName(sysDiaryBook.getName());
         sysDiary.setUserId(userId);
         sysDiary.setDiaryDate(LocalDate.now());
         sysDiary.setWordCount(request.getContent().length());

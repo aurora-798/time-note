@@ -127,9 +127,10 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
 
     /**
      * 校验当前用户对日记本的访问权限（归属权 + 加密密码）
+     * 如果没有权限则抛出异常，有权限则返回日记本对象
      */
     @Override
-    public void assertBookAccess(Long bookId, String password) {
+    public SysDiaryBook assertBookAccess(Long bookId, String password) {
         if (bookId == null) {
             throw new BusinessException(ResultCode.PARAM_ERROR);
         }
@@ -142,7 +143,7 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
             throw new BusinessException(ResultCode.NOT_FOUND);
         }
         if (sysDiaryBook.getEncrypted() == null || sysDiaryBook.getEncrypted() != 1) {
-            return;
+            return sysDiaryBook;
         }
         if (StrUtil.isBlank(password)) {
             throw new BusinessException(ResultCode.PASSWORD_ERROR);
@@ -156,6 +157,7 @@ public class SysDiaryBookServiceImpl extends ServiceImpl<SysDiaryBookMapper, Sys
         if (!BcryptUtils.checkBcrypt(password, sysDiaryBookSecret.getSecretHash())) {
             throw new BusinessException(ResultCode.PASSWORD_ERROR);
         }
+        return sysDiaryBook;
     }
 
 

@@ -25,6 +25,9 @@ public class SysDiary {
     @Schema(description = "日记日期")
     private LocalDate diaryDate;
 
+    @Schema(description = "日记本名称")
+    private String bookName;
+
     @Schema(description = "标题")
     private String title;
 

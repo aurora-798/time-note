@@ -11,5 +11,6 @@ public interface DiaryRagSearchService {
     Flux<String> chatDiary(@V("context") String context,
                            @V("currentDate") String currentDate,
                            @V("yesterdayDate") String yesterdayDate,
+                           @V("retrievalCount") int retrievalCount,
                            @UserMessage String userMessage);
 }

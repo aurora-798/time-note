@@ -61,6 +61,7 @@ public class AiChatServiceImpl implements AiChatService {
                 searchResult.getContext(),
                 currentDate,
                 yesterdayDate,
+                searchResult.getRetrievalCount(),
                 userMessage
         );
     }
