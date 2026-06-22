@@ -8,5 +8,8 @@ import reactor.core.publisher.Flux;
 public interface DiaryRagSearchService {
 
     @SystemMessage(fromResource = "prompt/sys_diary_search_rag_prompt.txt")
-    Flux<String> chatDiary(@V("context") String context, @UserMessage String userMessage);
+    Flux<String> chatDiary(@V("context") String context,
+                           @V("currentDate") String currentDate,
+                           @V("yesterdayDate") String yesterdayDate,
+                           @UserMessage String userMessage);
 }

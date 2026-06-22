@@ -1,11 +1,12 @@
 package com.note.ai.utils;
 
 import cn.hutool.core.util.StrUtil;
+import com.note.ai.model.RagSearchResult;
+import com.note.ai.model.TemporalRange;
 import com.note.ai.store.QdrantHybridStore;
 import com.note.config.QdrantProperties;
 import com.note.entity.SysDiary;
 import dev.langchain4j.data.document.Document;
-import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
@@ -16,6 +17,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class RagUtils {
@@ -29,45 +31,49 @@ public class RagUtils {
     @Resource
     private QdrantProperties qdrantProperties;
 
-    // 长文本分割参数
+    @Resource
+    private TemporalQueryParser temporalQueryParser;
+
     private final int CHUNK_SIZE = 500;
     private final int OVERLAP = 100;
 
 
     /**
-     * 混合检索用户问题，返回答案上下文
+     * 混合检索用户问题，返回检索结果（含时间范围无日记时的直接回复）
      */
-    public String searchAnswerByUserMessage(String userMessage, String userId) {
+    public RagSearchResult searchByUserMessage(String userMessage, String userId) {
+        Optional<TemporalRange> dateRange = temporalQueryParser.parse(userMessage);
         Response<Embedding> embed = embeddingModel.embed(userMessage);
         List<TextSegment> textSegments = qdrantHybridStore.hybridSearch(
                 userMessage,
                 embed.content(),
                 userId,
-                qdrantProperties.getFinalLimit()
+                qdrantProperties.getFinalLimit(),
+                dateRange
         );
-        if (textSegments.isEmpty()) {
-            return "没有找到和你问题相关的日记内容";
+
+        if (dateRange.isPresent() && textSegments.isEmpty()) {
+            return RagSearchResult.directReply(dateRange.get().emptyResultMessage());
         }
+
+        if (textSegments.isEmpty()) {
+            return RagSearchResult.withContext("没有找到和你问题相关的日记内容");
+        }
+
         StringBuilder context = new StringBuilder();
         for (TextSegment seg : textSegments) {
             context.append(seg.text());
             context.append("\n-------------------------\n");
         }
-        return context.toString();
+        return RagSearchResult.withContext(context.toString());
     }
 
 
-    /**
-     * 保存向量数据库（dense + BM25 sparse）
-     */
     public void embeddingSaveTextAndStore(List<TextSegment> textSegments) {
         Response<List<Embedding>> embedAllList = embeddingModel.embedAll(textSegments);
         qdrantHybridStore.upsertSegments(textSegments, embedAllList.content());
     }
 
-    /**
-     * 更新向量数据库
-     */
     public void embeddingUpdateTextAndStore(SysDiary sysDiary) {
         String diaryIdStr = sysDiary.getId().toString();
         qdrantHybridStore.deleteByDiaryId(diaryIdStr);
@@ -82,9 +88,6 @@ public class RagUtils {
     }
 
 
-    /**
-     * 将单条日记实体转为LangChain4j Document
-     */
     public Document toDocument(SysDiary diary) {
         String diaryId = StrUtil.toString(diary.getId());
         String bookId = StrUtil.toString(diary.getBookId());
@@ -142,9 +145,6 @@ public class RagUtils {
     }
 
 
-    /**
-     *  文档自适应分块
-     */
     public List<TextSegment> autoSplit(Document document) {
         String text = document.text();
         int TEXT_THRESHOLD = 500;

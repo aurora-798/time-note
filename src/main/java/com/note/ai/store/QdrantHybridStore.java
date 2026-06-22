@@ -1,5 +1,6 @@
 package com.note.ai.store;
 
+import com.note.ai.model.TemporalRange;
 import com.note.config.QdrantProperties;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -31,12 +32,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.qdrant.client.ConditionFactory.matchKeyword;
+import static io.qdrant.client.ConditionFactory.matchKeywords;
 import static io.qdrant.client.PointIdFactory.id;
 import static io.qdrant.client.QueryFactory.fusion;
 import static io.qdrant.client.QueryFactory.nearest;
@@ -124,10 +128,9 @@ public class QdrantHybridStore {
         }
     }
 
-    public List<TextSegment> hybridSearch(String queryText, Embedding queryEmbedding, String userId, int limit) {
-        Filter userFilter = Filter.newBuilder()
-                .addMust(matchKeyword("userId", userId))
-                .build();
+    public List<TextSegment> hybridSearch(String queryText, Embedding queryEmbedding, String userId,
+                                          int limit, Optional<TemporalRange> dateRange) {
+        Filter filter = buildFilter(userId, dateRange);
 
         Document bm25Document = Document.newBuilder()
                 .setModel(BM25_MODEL)
@@ -139,13 +142,13 @@ public class QdrantHybridStore {
                 .addPrefetch(PrefetchQuery.newBuilder()
                         .setQuery(nearest(bm25Document))
                         .setUsing(SPARSE_VECTOR)
-                        .setFilter(userFilter)
+                        .setFilter(filter)
                         .setLimit(properties.getPrefetchLimit())
                         .build())
                 .addPrefetch(PrefetchQuery.newBuilder()
                         .setQuery(nearest(toFloatList(queryEmbedding)))
                         .setUsing(DENSE_VECTOR)
-                        .setFilter(userFilter)
+                        .setFilter(filter)
                         .setLimit(properties.getPrefetchLimit())
                         .build())
                 .setQuery(fusion(Fusion.RRF))
@@ -208,7 +211,7 @@ public class QdrantHybridStore {
 
     private void createPayloadIndexes(String collectionName)
             throws ExecutionException, InterruptedException, TimeoutException {
-        for (String field : List.of("userId", "diaryId")) {
+        for (String field : List.of("userId", "diaryId", "diaryDate")) {
             qdrantClient.createPayloadIndexAsync(
                     collectionName,
                     field,
@@ -219,6 +222,31 @@ public class QdrantHybridStore {
                     RPC_TIMEOUT
             ).get(RPC_TIMEOUT.toSeconds(), TimeUnit.SECONDS);
         }
+    }
+
+    private Filter buildFilter(String userId, Optional<TemporalRange> dateRange) {
+        Filter.Builder builder = Filter.newBuilder()
+                .addMust(matchKeyword("userId", userId));
+
+        dateRange.ifPresent(temporal -> {
+            if (temporal.isSingleDay()) {
+                builder.addMust(matchKeyword("diaryDate", temporal.startDate().toString()));
+            } else {
+                builder.addMust(matchKeywords("diaryDate", expandDates(temporal)));
+            }
+        });
+
+        return builder.build();
+    }
+
+    private List<String> expandDates(TemporalRange range) {
+        List<String> dates = new ArrayList<>();
+        LocalDate cursor = range.startDate();
+        while (!cursor.isAfter(range.endDate())) {
+            dates.add(cursor.toString());
+            cursor = cursor.plusDays(1);
+        }
+        return dates;
     }
 
     private PointStruct toPointStruct(TextSegment segment, Embedding embedding) {
