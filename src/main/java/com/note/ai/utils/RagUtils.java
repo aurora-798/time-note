@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 
+import com.note.ai.utils.RagContextConsolidator.DiaryContext;
+
 @Component
 public class RagUtils {
 
@@ -43,12 +45,13 @@ public class RagUtils {
      */
     public RagSearchResult searchByUserMessage(String userMessage, String userId) {
         Optional<TemporalRange> dateRange = temporalQueryParser.parse(userMessage);
-        Response<Embedding> embed = embeddingModel.embed(userMessage);
+        String searchQuery = QueryExpansionUtil.expandForSearch(userMessage);
+        Response<Embedding> embed = embeddingModel.embed(searchQuery);
         List<TextSegment> textSegments = qdrantHybridStore.hybridSearch(
-                userMessage,
+                searchQuery,
                 embed.content(),
                 userId,
-                qdrantProperties.getFinalLimit(),
+                qdrantProperties.getCandidateLimit(),
                 dateRange
         );
 
@@ -60,12 +63,12 @@ public class RagUtils {
             return RagSearchResult.noMatchReply();
         }
 
-        StringBuilder context = new StringBuilder();
-        for (TextSegment seg : textSegments) {
-            context.append(seg.text());
-            context.append("\n-------------------------\n");
-        }
-        return RagSearchResult.withContext(context.toString(), textSegments.size());
+        List<DiaryContext> diaries = RagContextConsolidator.consolidate(
+                textSegments,
+                qdrantProperties.getFinalLimit()
+        );
+        String context = RagContextConsolidator.formatContext(diaries);
+        return RagSearchResult.withContext(context, diaries.size());
     }
 
 

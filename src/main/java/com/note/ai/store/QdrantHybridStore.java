@@ -194,12 +194,13 @@ public class QdrantHybridStore {
                         .setUsing(DENSE_VECTOR)                     // 使用 dense 稠密向量
                         .setFilter(filter)                          // 携带用户、日期过滤条件
                         .setLimit(properties.getPrefetchLimit())    // 预取数量 prefetchLimit
+                        .setScoreThreshold(0.3f)
                         .build())
                 // 1.3 融合：使用 RRF 倒数排名融合
                 // 分别从稠密、稀疏检索拿到两套有序结果，不依赖向量分数，只根据排名重新计算综合得分，平衡语义相似度和关键词匹配，
                 // 解决纯向量忽略关键词、纯关键词忽略语义的问题。
                 .setQuery(query)
-                .setScoreThreshold(0.01f)  // 满分 0.0401的40%
+                .setScoreThreshold(0.015f)  // 满分 0.044 的 34%
                 // 1.4 最终返回数量
                 .setLimit(limit)
                 // 1.5 检索时带回存储的原文和元数据，否则只能拿到向量和分数
@@ -384,6 +385,7 @@ public class QdrantHybridStore {
                 metadata.put(key, val.getStringValue());
             }
         });
+        metadata.put("_retrievalScore", String.valueOf(point.getScore()));
         return TextSegment.from(text, metadata);
     }
 

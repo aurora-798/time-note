@@ -25,5 +25,9 @@ public class QdrantProperties {
 
     private int prefetchLimit = 20;
 
+    /** 合并去重后送入 LLM 的最大日记条数 */
     private int finalLimit = 5;
+
+    /** Qdrant 原始召回 chunk 上限（合并前，应大于 finalLimit） */
+    private int candidateLimit = 12;
 }
