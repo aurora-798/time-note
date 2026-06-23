@@ -1,4 +1,4 @@
-package com.note.config;
+package com.note.ai.config;
 
 import io.qdrant.client.QdrantClient;
 import io.qdrant.client.QdrantGrpcClient;

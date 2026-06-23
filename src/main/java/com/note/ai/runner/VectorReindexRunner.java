@@ -1,7 +1,7 @@
 package com.note.ai.runner;
 
 import com.note.ai.utils.RagUtils;
-import com.note.config.QdrantProperties;
+import com.note.ai.config.QdrantProperties;
 import com.note.entity.SysDiary;
 import com.note.mapper.SysDiaryMapper;
 import lombok.RequiredArgsConstructor;

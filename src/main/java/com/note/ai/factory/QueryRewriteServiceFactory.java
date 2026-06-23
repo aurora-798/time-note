@@ -1,0 +1,22 @@
+package com.note.ai.factory;
+
+import com.note.ai.service.QueryRewriteService;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.service.AiServices;
+import jakarta.annotation.Resource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class QueryRewriteServiceFactory {
+
+    @Resource
+    private ChatModel chatModel;
+
+    @Bean
+    public QueryRewriteService queryRewriteService() {
+        return AiServices.builder(QueryRewriteService.class)
+                .chatModel(chatModel)
+                .build();
+    }
+}

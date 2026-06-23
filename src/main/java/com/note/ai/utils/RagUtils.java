@@ -4,7 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.note.ai.model.RagSearchResult;
 import com.note.ai.model.TemporalRange;
 import com.note.ai.store.QdrantHybridStore;
-import com.note.config.QdrantProperties;
+import com.note.ai.config.QdrantProperties;
 import com.note.entity.SysDiary;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
@@ -63,10 +63,10 @@ public class RagUtils {
             return RagSearchResult.noMatchReply();
         }
 
-        List<DiaryContext> diaries = RagContextConsolidator.consolidate(
-                textSegments,
-                qdrantProperties.getFinalLimit()
-        );
+        // 按 diaryId 合并 chunk
+        List<DiaryContext> diaries = RagContextConsolidator.consolidate(textSegments);
+        // rerank hook: reorder diaries here before limit
+        diaries = RagContextConsolidator.limit(diaries, qdrantProperties.getFinalLimit());
         String context = RagContextConsolidator.formatContext(diaries);
         return RagSearchResult.withContext(context, diaries.size());
     }

@@ -1,7 +1,7 @@
 package com.note.ai.store;
 
 import com.note.ai.model.TemporalRange;
-import com.note.config.QdrantProperties;
+import com.note.ai.config.QdrantProperties;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import io.qdrant.client.QdrantClient;
@@ -17,7 +17,6 @@ import io.qdrant.client.grpc.Common.Filter;
 import io.qdrant.client.grpc.JsonWithInt.Value;
 import io.qdrant.client.grpc.Points;
 import io.qdrant.client.grpc.Points.Document;
-import io.qdrant.client.grpc.Points.Fusion;
 import io.qdrant.client.grpc.Points.PointStruct;
 import io.qdrant.client.grpc.Points.PrefetchQuery;
 import io.qdrant.client.grpc.Points.QueryPoints;
@@ -43,7 +42,6 @@ import java.util.concurrent.TimeoutException;
 import static io.qdrant.client.ConditionFactory.matchKeyword;
 import static io.qdrant.client.ConditionFactory.matchKeywords;
 import static io.qdrant.client.PointIdFactory.id;
-import static io.qdrant.client.QueryFactory.fusion;
 import static io.qdrant.client.QueryFactory.nearest;
 import static io.qdrant.client.ValueFactory.value;
 import static io.qdrant.client.VectorFactory.vector;
@@ -156,7 +154,7 @@ public class QdrantHybridStore {
      * queryText：用户原始提问文本（用于 BM25 稀疏检索）
      * queryEmbedding：提问文本的稠密向量（用于语义检索）
      * userId：用户隔离，只能查自己的日记（数据隔离）
-     * limit：最终返回 topN 结果
+     * limit：最终返回 topN 结果 QdrantProperties.candidateLimit = 12
      * dateRange：可选时间范围，限定只检索某段日期日记
      */
     public List<TextSegment> hybridSearch(String queryText, Embedding queryEmbedding, String userId,

@@ -107,3 +107,31 @@ CREATE TABLE `sys_login_log` (
                                  KEY `idx_user_id` (`user_id`),
                                  KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='登录日志表';
+
+
+CREATE TABLE `ai_chat_session` (
+    `id` bigint NOT NULL COMMENT '会话ID',
+    `user_id` bigint NOT NULL COMMENT '用户ID',
+    `title` varchar(200) NOT NULL DEFAULT '新对话' COMMENT '会话标题',
+    `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `delete_flag` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除：0未删 1已删',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_user_update` (`user_id`, `update_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 聊天会话表';
+
+
+CREATE TABLE `ai_chat_message` (
+    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '消息ID',
+    `session_id` bigint NOT NULL COMMENT '会话ID',
+    `user_id` bigint NOT NULL COMMENT '用户ID',
+    `role` varchar(20) NOT NULL COMMENT 'user | assistant',
+    `content` longtext NOT NULL COMMENT '消息内容',
+    `search_query` varchar(1000) DEFAULT NULL COMMENT '检索改写 query，仅 user 消息',
+    `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_session_id` (`session_id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_session_time` (`session_id`, `create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 聊天消息表';

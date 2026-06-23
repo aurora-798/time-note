@@ -13,14 +13,15 @@ import java.util.regex.Pattern;
 
 /**
  * 检索后处理：按 diaryId 合并 chunk、结构化上下文，避免同一日记多段割裂进 LLM。
+ * <p>
+ * 不负责排序与相关度重算（由检索层 / 未来 Rerank 负责）；调用方在 rerank 之后 {@link #limit} 截断。
  */
 public final class RagContextConsolidator {
 
     private static final String SCORE_KEY = "_retrievalScore";
+    private static final String INDEX_KEY = "index";
+    private static final int MISSING_INDEX = Integer.MAX_VALUE;
     private static final Pattern BODY_MARKER = Pattern.compile("日记正文：");
-
-    private static final double SHORT_TEXT_SCORE_FACTOR = 0.85;
-    private static final int SHORT_TEXT_WORD_THRESHOLD = 50;
 
     private RagContextConsolidator() {
     }
@@ -36,14 +37,21 @@ public final class RagContextConsolidator {
             String temperature,
             String wordCount,
             String bodyText,
-            double bestScore
+            double retrievalScore
     ) {
+        public DiaryContext withRetrievalScore(double score) {
+            return new DiaryContext(
+                    diaryId, bookName, title, diaryDate,
+                    city, district, weatherText, temperature, wordCount,
+                    bodyText, score
+            );
+        }
     }
 
     /**
-     * 按 diaryId 分组，合并同日记多 chunk，按最佳检索分排序后截断。
+     * 按 diaryId 合并 chunk，日记列表顺序与输入 segments 首次出现顺序一致（即检索排序）。
      */
-    public static List<DiaryContext> consolidate(List<TextSegment> segments, int maxDiaries) {
+    public static List<DiaryContext> consolidate(List<TextSegment> segments) {
         if (segments == null || segments.isEmpty()) {
             return List.of();
         }
@@ -57,17 +65,21 @@ public final class RagContextConsolidator {
             grouped.computeIfAbsent(diaryId, k -> new ArrayList<>()).add(segment);
         }
 
-        List<DiaryContext> diaries = grouped.entrySet().stream()
+        return grouped.entrySet().stream()
                 .map(entry -> toDiaryContext(entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparingDouble(DiaryContext::bestScore).reversed())
-                .limit(Math.max(maxDiaries, 1))
                 .toList();
+    }
 
-        return diaries;
+    /** Rerank 之后截断送入 LLM 的日记条数。 */
+    public static List<DiaryContext> limit(List<DiaryContext> diaries, int maxDiaries) {
+        if (diaries == null || diaries.isEmpty()) {
+            return List.of();
+        }
+        return diaries.stream().limit(Math.max(maxDiaries, 1)).toList();
     }
 
     public static String formatContext(List<DiaryContext> diaries) {
-        if (diaries.isEmpty()) {
+        if (diaries == null || diaries.isEmpty()) {
             return "";
         }
         StringBuilder context = new StringBuilder();
@@ -78,11 +90,6 @@ public final class RagContextConsolidator {
             }
             if (StrUtil.isNotBlank(diary.title())) {
                 context.append("日记标题：").append(diary.title()).append('\n');
-            }
-            if (isPlanLikeEntry(diary)) {
-                context.append("记录类型：开发计划（正文未明确完成态，总结时不得写「已完成」）\n");
-            } else if (isProgressLikeEntry(diary)) {
-                context.append("记录类型：开发进度\n");
             }
             if (StrUtil.isNotBlank(diary.diaryDate())) {
                 context.append("日记日期：").append(diary.diaryDate()).append('\n');
@@ -104,20 +111,20 @@ public final class RagContextConsolidator {
         return context.toString().trim();
     }
 
+    // <diaryId,与 diaryId 有关的分片>
     private static DiaryContext toDiaryContext(String diaryId, List<TextSegment> chunks) {
-        double bestScore = chunks.stream()
+        // 取得最大得分
+        double retrievalScore = chunks.stream()
                 .mapToDouble(RagContextConsolidator::segmentScore)
                 .max()
                 .orElse(0D);
 
-        TextSegment primary = chunks.stream()
-                .max(Comparator.comparingInt(seg -> seg.text() == null ? 0 : seg.text().length()))
-                .orElse(chunks.get(0));
+        // 元数据优先用 index 最小的 chunk
+        TextSegment primary = primaryChunk(chunks);
 
         String bookName = firstNonBlank(chunks, "bookName");
         String title = firstNonBlank(chunks, "title");
         String diaryDate = firstNonBlank(chunks, "diaryDate");
-
         if (StrUtil.isBlank(bookName)) {
             bookName = extractInlineField(primary.text(), "日记本名称：");
         }
@@ -133,7 +140,6 @@ public final class RagContextConsolidator {
         String weatherText = firstNonBlank(chunks, "weatherText");
         String temperature = firstNonBlank(chunks, "temperature");
         String wordCount = firstNonBlank(chunks, "wordCount");
-
         if (StrUtil.isBlank(city) && StrUtil.isBlank(district)) {
             String inlineLocation = extractInlineField(primary.text(), "地点：");
             if (StrUtil.isNotBlank(inlineLocation)) {
@@ -144,13 +150,10 @@ public final class RagContextConsolidator {
             wordCount = extractInlineField(primary.text(), "日记字数：");
         }
 
-        String bodyText = mergeBodyTexts(chunks);
-        bestScore = applyLengthPenalty(bestScore, wordCount);
-
         return new DiaryContext(
                 diaryId, bookName, title, diaryDate,
                 city, district, weatherText, temperature, wordCount,
-                bodyText, bestScore
+                mergeBodyTexts(chunks), retrievalScore
         );
     }
 
@@ -174,49 +177,78 @@ public final class RagContextConsolidator {
         return weatherText + "，温度：" + temperature;
     }
 
-    private static double applyLengthPenalty(double score, String wordCount) {
-        int count = parseWordCount(wordCount);
-        if (count >= 0 && count < SHORT_TEXT_WORD_THRESHOLD) {
-            return score * SHORT_TEXT_SCORE_FACTOR;
-        }
-        return score;
-    }
-
-    private static int parseWordCount(String wordCount) {
-        if (StrUtil.isBlank(wordCount)) {
-            return -1;
-        }
-        try {
-            return Integer.parseInt(wordCount.trim());
-        } catch (NumberFormatException ignored) {
-            return -1;
-        }
-    }
-
+    // 按 index 顺序合并分片
     private static String mergeBodyTexts(List<TextSegment> chunks) {
-        List<String> bodies = chunks.stream()
-                .map(RagContextConsolidator::extractBodyText)
-                .filter(StrUtil::isNotBlank)
-                .distinct()
-                .sorted(Comparator.comparingInt(String::length).reversed())
-                .toList();
-
-        if (bodies.isEmpty()) {
-            return chunks.stream()
-                    .map(TextSegment::text)
-                    .filter(StrUtil::isNotBlank)
-                    .findFirst()
-                    .orElse("");
-        }
-
-        String merged = bodies.get(0);
-        for (int i = 1; i < bodies.size(); i++) {
-            String candidate = bodies.get(i);
-            if (!merged.contains(candidate)) {
-                merged = merged + "\n" + candidate;
+        String merged = "";
+        for (TextSegment chunk : sortChunksByIndex(chunks)) {
+            String body = extractBodyText(chunk);
+            if (StrUtil.isNotBlank(body)) {
+                merged = appendBodyWithOverlap(merged, body);
             }
         }
-        return merged.trim();
+        if (StrUtil.isNotBlank(merged)) {
+            return merged.trim();
+        }
+        return chunks.stream()
+                .map(TextSegment::text)
+                .filter(StrUtil::isNotBlank)
+                .findFirst()
+                .orElse("");
+    }
+
+
+    // 元数据优先用 index 最小的 chunk
+    private static TextSegment primaryChunk(List<TextSegment> chunks) {
+        return chunks.stream()
+                .min(Comparator.comparingInt(RagContextConsolidator::chunkIndex))
+                .filter(seg -> chunkIndex(seg) != MISSING_INDEX)
+                .orElseGet(() -> chunks.stream()
+                        .max(Comparator.comparingInt(seg -> seg.text() == null ? 0 : seg.text().length()))
+                        .orElse(chunks.getFirst()));
+    }
+
+    private static List<TextSegment> sortChunksByIndex(List<TextSegment> chunks) {
+        boolean hasIndex = chunks.stream().anyMatch(seg -> chunkIndex(seg) != MISSING_INDEX);
+        if (hasIndex) {
+            return chunks.stream()
+                    .sorted(Comparator.comparingInt(RagContextConsolidator::chunkIndex))
+                    .toList();
+        }
+        return chunks.stream()
+                .sorted(Comparator.comparingInt((TextSegment seg) ->
+                        seg.text() == null ? 0 : seg.text().length()).reversed())
+                .toList();
+    }
+
+    private static String appendBodyWithOverlap(String merged, String body) {
+        if (StrUtil.isBlank(merged)) {
+            return body;
+        }
+        if (merged.contains(body)) {
+            return merged;
+        }
+        if (body.contains(merged)) {
+            return body;
+        }
+        int maxOverlap = Math.min(merged.length(), body.length());
+        for (int len = maxOverlap; len > 0; len--) {
+            if (merged.endsWith(body.substring(0, len))) {
+                return merged + body.substring(len);
+            }
+        }
+        return merged + body;
+    }
+
+    private static int chunkIndex(TextSegment segment) {
+        String raw = metadataString(segment, INDEX_KEY);
+        if (StrUtil.isBlank(raw)) {
+            return MISSING_INDEX;
+        }
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException ignored) {
+            return MISSING_INDEX;
+        }
     }
 
     private static String extractBodyText(TextSegment segment) {
@@ -276,29 +308,5 @@ public final class RagContextConsolidator {
             end = text.length();
         }
         return text.substring(start, end).trim();
-    }
-
-    static boolean isPlanLikeEntry(DiaryContext diary) {
-        String title = StrUtil.nullToEmpty(diary.title());
-        if (StrUtil.containsAny(title, "计划", "预完成", "待办")) {
-            return true;
-        }
-        String body = StrUtil.nullToEmpty(diary.bodyText());
-        if (containsExplicitCompletion(body)) {
-            return false;
-        }
-        int wc = parseWordCount(diary.wordCount());
-        return wc >= 0 && wc < SHORT_TEXT_WORD_THRESHOLD;
-    }
-
-    static boolean isProgressLikeEntry(DiaryContext diary) {
-        String title = StrUtil.nullToEmpty(diary.title());
-        return StrUtil.containsAny(title, "进度", "开发记录", "开发日志");
-    }
-
-    private static boolean containsExplicitCompletion(String body) {
-        return StrUtil.containsAny(body,
-                "已经完成", "已完成", "做完了", "今日完成", "今天完成",
-                "完成存储", "完成检索", "完成了接入", "完成了存储");
     }
 }
