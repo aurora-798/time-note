@@ -1,6 +1,5 @@
 package com.note.ai.store;
 
-import com.note.ai.model.TemporalRange;
 import com.note.ai.config.QdrantProperties;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -32,15 +31,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.time.LocalDate;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static io.qdrant.client.ConditionFactory.matchKeyword;
-import static io.qdrant.client.ConditionFactory.matchKeywords;
 import static io.qdrant.client.PointIdFactory.id;
 import static io.qdrant.client.QueryFactory.nearest;
 import static io.qdrant.client.ValueFactory.value;
@@ -155,12 +151,9 @@ public class QdrantHybridStore {
      * queryEmbedding：提问文本的稠密向量（用于语义检索）
      * userId：用户隔离，只能查自己的日记（数据隔离）
      * limit：最终返回 topN 结果 QdrantProperties.candidateLimit = 12
-     * dateRange：可选时间范围，限定只检索某段日期日记
      */
-    public List<TextSegment> hybridSearch(String queryText, Embedding queryEmbedding, String userId,
-                                          int limit, Optional<TemporalRange> dateRange) {
-        // 1. 构建过滤条件：匹配当前用户 id 以及 时间范围处理 TemporalRange
-        Filter filter = buildFilter(userId, dateRange);
+    public List<TextSegment> hybridSearch(String queryText, Embedding queryEmbedding, String userId, int limit) {
+        Filter filter = buildFilter(userId);
 
         Document bm25Document = Document.newBuilder()
                 .setModel(BM25_MODEL)
@@ -170,7 +163,7 @@ public class QdrantHybridStore {
         // 构建自定义 RRF 策略：BM25 权重为2，Dense 权重为1 k = 60
         Points.Rrf rrfConfig = Points.Rrf.newBuilder()
                 .setK(60)
-                .addWeights(1.7f)
+                .addWeights(1.0f)
                 .addWeights(1.0f)
                 .build();
         Points.Query query = Points.Query.newBuilder()
@@ -192,7 +185,7 @@ public class QdrantHybridStore {
                         .setUsing(DENSE_VECTOR)                     // 使用 dense 稠密向量
                         .setFilter(filter)                          // 携带用户、日期过滤条件
                         .setLimit(properties.getPrefetchLimit())    // 预取数量 prefetchLimit
-                        .setScoreThreshold(0.3f)
+                        .setScoreThreshold(0.4f)
                         .build())
                 // 1.3 融合：使用 RRF 倒数排名融合
                 // 分别从稠密、稀疏检索拿到两套有序结果，不依赖向量分数，只根据排名重新计算综合得分，平衡语义相似度和关键词匹配，
@@ -295,37 +288,10 @@ public class QdrantHybridStore {
         }
     }
 
-    private Filter buildFilter(String userId, Optional<TemporalRange> dateRange) {
-        Filter.Builder builder = Filter.newBuilder()
-                .addMust(matchKeyword("userId", userId));
-
-        dateRange.ifPresent(temporal -> {
-            // 单日：直接匹配单个diaryDate字符串
-            if (temporal.isSingleDay()) {
-                builder.addMust(matchKeyword("diaryDate", temporal.startDate().toString()));
-                // 多日区间：expandDates遍历区间所有日期，生成日期列表，使用matchKeywords多值匹配
-            } else {
-                builder.addMust(matchKeywords("diaryDate", expandDates(temporal)));
-            }
-        });
-
-        return builder.build();
-    }
-
-
-    /**
-     * 遍历起止日期，生成区间内每一天的字符串，用于 Qdrant 关键词批量过滤。
-     * @param range 时间范围对象
-     * @return 生成区间内每一天的字符串
-     */
-    private List<String> expandDates(TemporalRange range) {
-        List<String> dates = new ArrayList<>();
-        LocalDate cursor = range.startDate();
-        while (!cursor.isAfter(range.endDate())) {
-            dates.add(cursor.toString());
-            cursor = cursor.plusDays(1);
-        }
-        return dates;
+    private Filter buildFilter(String userId) {
+        return Filter.newBuilder()
+                .addMust(matchKeyword("userId", userId))
+                .build();
     }
 
     /**

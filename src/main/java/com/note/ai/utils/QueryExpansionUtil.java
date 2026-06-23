@@ -13,12 +13,15 @@ import java.util.Set;
  */
 public final class QueryExpansionUtil {
 
-    private static final Map<String, List<String>> SYNONYM_GROUPS = Map.of(
-            "query改写", List.of("query 改写", "查询改写", "查询语句优化", "查询优化", "数据库查询优化"),
-            "向量数据库", List.of("向量库", "Qdrant", "向量持久化", "向量持久化改造", "向量检索", "持久化向量"),
-            "docker", List.of("Docker", "容器部署"),
-            "拖延", List.of("拖延症", "拖延", "没动力", "自卑"),
-            "考研", List.of("考研", "放弃考研")
+    private static final Map<String, List<String>> SYNONYM_GROUPS = Map.ofEntries(
+            Map.entry("query改写", List.of("query 改写", "查询改写", "查询语句优化", "查询优化", "数据库查询优化", "改写模块")),
+            Map.entry("向量数据库", List.of("向量库", "Qdrant", "向量持久化", "向量持久化改造", "向量检索", "持久化向量")),
+            Map.entry("docker", List.of("Docker", "容器部署")),
+            Map.entry("拖延", List.of("拖延症", "拖延", "没动力", "自卑")),
+            Map.entry("考研", List.of("考研", "放弃考研")),
+            Map.entry("考研成绩", List.of("成绩出来了", "考研成绩", "分数", "考了多少分", "各科")),
+            Map.entry("出去玩", List.of("旅行", "短途旅行", "出游", "出差", "解压", "出门")),
+            Map.entry("放松", List.of("旅行", "短途旅行", "解压", "休闲", "出游"))
     );
 
     private QueryExpansionUtil() {

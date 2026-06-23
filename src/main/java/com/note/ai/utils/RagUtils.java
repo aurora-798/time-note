@@ -2,7 +2,6 @@ package com.note.ai.utils;
 
 import cn.hutool.core.util.StrUtil;
 import com.note.ai.model.RagSearchResult;
-import com.note.ai.model.TemporalRange;
 import com.note.ai.store.QdrantHybridStore;
 import com.note.ai.config.QdrantProperties;
 import com.note.entity.SysDiary;
@@ -17,7 +16,6 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Optional;
 
 import com.note.ai.utils.RagContextConsolidator.DiaryContext;
 
@@ -33,42 +31,41 @@ public class RagUtils {
     @Resource
     private QdrantProperties qdrantProperties;
 
-    @Resource
-    private TemporalQueryParser temporalQueryParser;
-
     private final int CHUNK_SIZE = 500;
     private final int OVERLAP = 100;
 
 
     /**
-     * 混合检索用户问题，返回检索结果（含时间范围无日记时的直接回复）
+     * 混合检索用户问题，返回检索结果。
      */
     public RagSearchResult searchByUserMessage(String userMessage, String userId) {
-        Optional<TemporalRange> dateRange = temporalQueryParser.parse(userMessage);
+        List<DiaryContext> diaries = retrieveDiaries(userMessage, userId);
+
+        if (diaries.isEmpty()) {
+            return RagSearchResult.noMatchReply();
+        }
+
+        String context = RagContextConsolidator.formatContext(diaries);
+        return RagSearchResult.withContext(context, diaries.size());
+    }
+
+    /** 检索并合并 chunk，返回送入 LLM 前的日记列表（评测 / rerank 钩子用）。 */
+    public List<DiaryContext> retrieveDiaries(String userMessage, String userId) {
         String searchQuery = QueryExpansionUtil.expandForSearch(userMessage);
         Response<Embedding> embed = embeddingModel.embed(searchQuery);
         List<TextSegment> textSegments = qdrantHybridStore.hybridSearch(
                 searchQuery,
                 embed.content(),
                 userId,
-                qdrantProperties.getCandidateLimit(),
-                dateRange
+                qdrantProperties.getCandidateLimit()
         );
 
-        if (dateRange.isPresent() && textSegments.isEmpty()) {
-            return RagSearchResult.directReply(dateRange.get().emptyResultMessage());
-        }
-
         if (textSegments.isEmpty()) {
-            return RagSearchResult.noMatchReply();
+            return List.of();
         }
 
-        // 按 diaryId 合并 chunk
         List<DiaryContext> diaries = RagContextConsolidator.consolidate(textSegments);
-        // rerank hook: reorder diaries here before limit
-        diaries = RagContextConsolidator.limit(diaries, qdrantProperties.getFinalLimit());
-        String context = RagContextConsolidator.formatContext(diaries);
-        return RagSearchResult.withContext(context, diaries.size());
+        return RagContextConsolidator.limit(diaries, qdrantProperties.getFinalLimit());
     }
 
 

@@ -7,7 +7,6 @@ import com.note.ai.service.DiaryRagSearchService;
 import com.note.ai.service.QueryRewriteService;
 import com.note.ai.utils.ConversationFormatter;
 import com.note.ai.utils.RagUtils;
-import com.note.ai.utils.TemporalQueryParser;
 import com.note.constant.ResultCode;
 import com.note.entity.AiChatMessage;
 import com.note.entity.vo.chat.AiChatStreamResult;
@@ -20,7 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -28,6 +30,7 @@ import java.util.List;
 public class AiChatServiceImpl implements AiChatService {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final ZoneId SERVER_ZONE = ZoneId.of("Asia/Shanghai");
 
     @Resource
     private DiaryRagSearchServiceFactory diaryRagSearchServiceFactory;
@@ -39,20 +42,20 @@ public class AiChatServiceImpl implements AiChatService {
     private RagUtils ragUtils;
 
     @Resource
-    private TemporalQueryParser temporalQueryParser;
-
-    @Resource
     private AiChatSessionService chatSessionService;
 
     @Override
     public Flux<String> chat(String userId, String userMessage) {
         requireCurrentUser(userId);
-        RagSearchResult searchResult = ragUtils.searchByUserMessage(userMessage, userId);
+        String searchQuery = resolveSearchQuery(Collections.emptyList(), userMessage);
+        log.info("single-turn chat original=[{}] rewritten=[{}]", userMessage, searchQuery);
+
+        RagSearchResult searchResult = ragUtils.searchByUserMessage(searchQuery, userId);
         if (searchResult.isSkipLlm()) {
             return Flux.just(searchResult.getDirectReply());
         }
 
-        var today = temporalQueryParser.today();
+        var today = LocalDate.now(SERVER_ZONE);
         String currentDate = today.format(DATE_FORMAT);
         String yesterdayDate = today.minusDays(1).format(DATE_FORMAT);
 
@@ -85,9 +88,11 @@ public class AiChatServiceImpl implements AiChatService {
 
         chatSessionService.updateTitleIfDefault(sid, userMessage);
 
+
+        // 混合检索 + 切片合并 + 切片截断 + 切片格式化
         RagSearchResult searchResult = ragUtils.searchByUserMessage(searchQuery, userId);
 
-        var today = temporalQueryParser.today();
+        var today = LocalDate.now(SERVER_ZONE);
         String currentDate = today.format(DATE_FORMAT);
         String yesterdayDate = today.minusDays(1).format(DATE_FORMAT);
 
@@ -137,11 +142,8 @@ public class AiChatServiceImpl implements AiChatService {
     }
 
     private String resolveSearchQuery(List<AiChatMessage> history, String userMessage) {
-        if (history == null || history.isEmpty()) {
-            return userMessage;
-        }
         try {
-            var today = temporalQueryParser.today();
+            var today = LocalDate.now(SERVER_ZONE);
             String currentDate = today.format(DATE_FORMAT);
             String yesterdayDate = today.minusDays(1).format(DATE_FORMAT);
             String rewritten = queryRewriteService.rewrite(
