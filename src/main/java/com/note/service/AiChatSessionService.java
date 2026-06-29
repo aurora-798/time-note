@@ -17,7 +17,6 @@ public interface AiChatSessionService {
 
     Long getOrCreateSession(Long userId, Long sessionId);
 
-    /** 供 Query Rewrite 使用的近期消息（只读，不写 Redis） */
     List<AiChatMessage> listRecentMessages(Long sessionId, int limit);
 
     /** 从 DB 灌入 LangChain4j ChatMemory（会先 clear 再加载） */

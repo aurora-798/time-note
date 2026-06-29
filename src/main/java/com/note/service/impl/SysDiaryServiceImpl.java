@@ -14,6 +14,7 @@ import com.note.entity.request.diary.*;
 import com.note.entity.vo.diary.SysDiaryFindVo;
 import com.note.entity.vo.diary.SysDiaryWeatherVo;
 import com.note.exception.BusinessException;
+import com.note.mapper.SysDiaryBookMapper;
 import com.note.mapper.SysDiaryMapper;
 import com.note.service.SysDiaryBookService;
 import com.note.service.SysDiaryService;
@@ -58,6 +59,8 @@ public class SysDiaryServiceImpl extends ServiceImpl<SysDiaryMapper, SysDiary> i
      */
     public void updateDiaryVector(SysDiary sysDiary) {
         // 写入更新后的向量
+        SysDiaryBook book = sysDiaryBookService.getById(sysDiary.getBookId());
+        sysDiary.setBookName(book.getName());
         ragUtils.embeddingUpdateTextAndStore(sysDiary);
     }
 

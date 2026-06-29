@@ -51,10 +51,9 @@ public class RagUtils {
 
     /** 检索并合并 chunk，返回送入 LLM 前的日记列表（评测 / rerank 钩子用）。 */
     public List<DiaryContext> retrieveDiaries(String userMessage, String userId) {
-        String searchQuery = QueryExpansionUtil.expandForSearch(userMessage);
-        Response<Embedding> embed = embeddingModel.embed(searchQuery);
+        Response<Embedding> embed = embeddingModel.embed(userMessage);
         List<TextSegment> textSegments = qdrantHybridStore.hybridSearch(
-                searchQuery,
+                userMessage,
                 embed.content(),
                 userId,
                 qdrantProperties.getCandidateLimit()

@@ -11,13 +11,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ConversationFormatterTest {
 
     @Test
-    void format_returnsPlaceholderWhenEmpty() {
+    void formatForRewrite_emptyHistory() {
         assertEquals("（无）", ConversationFormatter.formatForRewrite(List.of()));
         assertEquals("（无）", ConversationFormatter.formatForRewrite(null));
     }
 
     @Test
-    void format_rendersRolesAndTruncatesAssistant() {
+    void formatForRewrite_truncatesAssistantReply() {
         AiChatMessage user = new AiChatMessage();
         user.setRole("user");
         user.setContent("我上周去了哪里？");

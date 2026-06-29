@@ -88,8 +88,6 @@ public class AiChatServiceImpl implements AiChatService {
 
         chatSessionService.updateTitleIfDefault(sid, userMessage);
 
-
-        // 混合检索 + 切片合并 + 切片截断 + 切片格式化
         RagSearchResult searchResult = ragUtils.searchByUserMessage(searchQuery, userId);
 
         var today = LocalDate.now(SERVER_ZONE);
