@@ -2,6 +2,7 @@ package com.note.ai.utils;
 
 import cn.hutool.core.util.StrUtil;
 import com.note.ai.model.RagSearchResult;
+import com.note.ai.rerank.DiaryRerankService;
 import com.note.ai.store.QdrantHybridStore;
 import com.note.ai.config.QdrantProperties;
 import com.note.constant.RagSettingConstant;
@@ -32,6 +33,9 @@ public class RagUtils {
     @Resource
     private QdrantProperties qdrantProperties;
 
+    @Resource
+    private DiaryRerankService diaryRerankService;
+
     /**
      * 混合检索用户问题，返回检索结果。
      */
@@ -61,6 +65,10 @@ public class RagUtils {
         }
 
         List<DiaryContext> diaries = RagContextConsolidator.consolidate(textSegments);
+        diaries = diaryRerankService.rerank(userMessage, diaries);
+        if (diaries.isEmpty()) {
+            return List.of();
+        }
         return RagContextConsolidator.limit(diaries, qdrantProperties.getFinalLimit());
     }
 
