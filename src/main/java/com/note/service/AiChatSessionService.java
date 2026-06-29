@@ -1,5 +1,6 @@
 package com.note.service;
 
+import com.note.constant.RagSettingConstant;
 import com.note.entity.AiChatMessage;
 import com.note.entity.vo.chat.AiChatMessageVo;
 import com.note.entity.vo.chat.AiChatSessionVo;
@@ -9,11 +10,11 @@ import java.util.List;
 
 public interface AiChatSessionService {
 
-    int REWRITE_HISTORY_LIMIT = 6;
-    int REWRITE_ASSISTANT_TRUNCATE = 800;
-    int ASSISTANT_STORE_MAX = 8000;
+    int REWRITE_HISTORY_LIMIT = RagSettingConstant.QUERY_REWRITE_HISTORY_LIMIT;
+    int REWRITE_ASSISTANT_TRUNCATE = RagSettingConstant.QUERY_REWRITE_ASSISTANT_TRUNCATE;
+    int ASSISTANT_STORE_MAX = RagSettingConstant.RAG_ASSISTANT_STORE_MAX;
     int SESSION_LIST_LIMIT = 30;
-    int CHAT_MEMORY_LIMIT = 100;
+    int CHAT_MEMORY_LIMIT = RagSettingConstant.RAG_CHAT_MEMORY_LIMIT;
 
     Long getOrCreateSession(Long userId, Long sessionId);
 

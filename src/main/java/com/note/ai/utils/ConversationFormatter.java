@@ -1,8 +1,8 @@
 package com.note.ai.utils;
 
 import cn.hutool.core.util.StrUtil;
+import com.note.constant.RagSettingConstant;
 import com.note.entity.AiChatMessage;
-import com.note.service.AiChatSessionService;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ public final class ConversationFormatter {
     }
 
     public static String formatForRewrite(List<AiChatMessage> history) {
-        return format(history, AiChatSessionService.REWRITE_ASSISTANT_TRUNCATE);
+        return format(history, RagSettingConstant.QUERY_REWRITE_ASSISTANT_TRUNCATE);
     }
 
     private static String format(List<AiChatMessage> history, int assistantTruncate) {

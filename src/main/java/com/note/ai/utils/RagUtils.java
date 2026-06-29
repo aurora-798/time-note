@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.note.ai.model.RagSearchResult;
 import com.note.ai.store.QdrantHybridStore;
 import com.note.ai.config.QdrantProperties;
+import com.note.constant.RagSettingConstant;
 import com.note.entity.SysDiary;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
@@ -30,10 +31,6 @@ public class RagUtils {
 
     @Resource
     private QdrantProperties qdrantProperties;
-
-    private final int CHUNK_SIZE = 500;
-    private final int OVERLAP = 100;
-
 
     /**
      * 混合检索用户问题，返回检索结果。
@@ -151,10 +148,11 @@ public class RagUtils {
 
     public List<TextSegment> autoSplit(Document document) {
         String text = document.text();
-        int TEXT_THRESHOLD = 500;
-        if (text.length() < TEXT_THRESHOLD) {
+        if (text.length() < RagSettingConstant.DIARY_WHOLE_TEXT_THRESHOLD) {
             return List.of(TextSegment.from(text, document.metadata()));
         }
-        return DocumentSplitters.recursive(CHUNK_SIZE, OVERLAP).split(document);
+        return DocumentSplitters.recursive(
+                RagSettingConstant.DIARY_CHUNK_SIZE,
+                RagSettingConstant.DIARY_CHUNK_OVERLAP).split(document);
     }
 }

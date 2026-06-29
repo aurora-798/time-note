@@ -1,6 +1,7 @@
 package com.note.ai.store;
 
 import com.note.ai.config.QdrantProperties;
+import com.note.constant.RagSettingConstant;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import io.qdrant.client.QdrantClient;
@@ -53,7 +54,8 @@ public class QdrantHybridStore {
     public static final String BM25_MODEL = "qdrant/bm25";
     public static final String PAYLOAD_TEXT_KEY = "text";
 
-    private static final Duration RPC_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration RPC_TIMEOUT =
+            Duration.ofSeconds(RagSettingConstant.QDRANT_RPC_TIMEOUT_SECONDS);
 
     private final QdrantClient qdrantClient;
 
@@ -160,11 +162,10 @@ public class QdrantHybridStore {
                 .setText(queryText)
                 .build();
 
-        // 构建自定义 RRF 策略：BM25 权重为2，Dense 权重为1 k = 60
         Points.Rrf rrfConfig = Points.Rrf.newBuilder()
-                .setK(60)
-                .addWeights(1.0f)
-                .addWeights(1.0f)
+                .setK(RagSettingConstant.QDRANT_HYBRID_RRF_K)
+                .addWeights(RagSettingConstant.QDRANT_HYBRID_RRF_WEIGHT_BM25)
+                .addWeights(RagSettingConstant.QDRANT_HYBRID_RRF_WEIGHT_DENSE)
                 .build();
         Points.Query query = Points.Query.newBuilder()
                 .setRrf(rrfConfig)
@@ -175,23 +176,20 @@ public class QdrantHybridStore {
                 // 1.1 第一个 Prefetch：稀疏 BM25 检索
                 .addPrefetch(PrefetchQuery.newBuilder()
                         .setQuery(nearest(bm25Document))            // 输入 bm25 稀疏向量
-                        .setUsing(SPARSE_VECTOR)                    // 使用 bm25 稀疏向量
+                        .setUsing(SPARSE_VECTOR)
                         .setFilter(filter)                          // 携带用户、日期过滤条件
                         .setLimit(properties.getPrefetchLimit())   // 预取数量 prefetchLimit
                         .build())
                 // 1.2 第二个 Prefetch：稠密语义检索
                 .addPrefetch(PrefetchQuery.newBuilder()
                         .setQuery(nearest(toFloatList(queryEmbedding))) // 输入 queryEmbedding 浮点向量
-                        .setUsing(DENSE_VECTOR)                     // 使用 dense 稠密向量
-                        .setFilter(filter)                          // 携带用户、日期过滤条件
-                        .setLimit(properties.getPrefetchLimit())    // 预取数量 prefetchLimit
-                        .setScoreThreshold(0.4f)
+                        .setUsing(DENSE_VECTOR)
+                        .setFilter(filter)
+                        .setLimit(properties.getPrefetchLimit())
+                        .setScoreThreshold(properties.getDensePrefetchScoreThreshold())
                         .build())
-                // 1.3 融合：使用 RRF 倒数排名融合
-                // 分别从稠密、稀疏检索拿到两套有序结果，不依赖向量分数，只根据排名重新计算综合得分，平衡语义相似度和关键词匹配，
-                // 解决纯向量忽略关键词、纯关键词忽略语义的问题。
                 .setQuery(query)
-                .setScoreThreshold(0.015f)  // 满分 0.044 的 34%
+                .setScoreThreshold(properties.getRrfScoreThreshold())
                 // 1.4 最终返回数量
                 .setLimit(limit)
                 // 1.5 检索时带回存储的原文和元数据，否则只能拿到向量和分数
@@ -321,9 +319,6 @@ public class QdrantHybridStore {
                 .setText(text)
                 .build();
 
-
-        // dense：稠密浮点向量，由 Embedding 转换而来
-        // bm25：稀疏向量
         return PointStruct.newBuilder()
                 .setId(id(UUID.randomUUID()))
                 .setVectors(namedVectors(Map.of(
